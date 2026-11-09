@@ -8,12 +8,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import com.example.insta1.ui.ad.AdMobConfig
 import com.example.insta1.ui.main.MainScreen
 import com.example.insta1.ui.theme.Insta1Theme
 
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+    AdMobConfig.initialize(this)
 
     enableEdgeToEdge()
     setContent {

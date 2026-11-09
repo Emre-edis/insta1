@@ -24,7 +24,7 @@ object GallerySaver {
             val contentValues = ContentValues().apply {
                 put(MediaStore.Video.Media.DISPLAY_NAME, displayName)
                 put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
-                put(MediaStore.Video.Media.RELATIVE_PATH, "${Environment.DIRECTORY_MOVIES}/Insta1")
+                put(MediaStore.Video.Media.RELATIVE_PATH, "${Environment.DIRECTORY_MOVIES}/StoryCut")
                 put(MediaStore.Video.Media.IS_PENDING, 1)
                 put(MediaStore.Video.Media.DATE_ADDED, System.currentTimeMillis() / 1000)
                 put(MediaStore.Video.Media.DATE_MODIFIED, System.currentTimeMillis() / 1000)
@@ -60,7 +60,7 @@ object GallerySaver {
             // Legacy storage for API < 29
             val moviesDir = File(
                 Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES),
-                "Insta1"
+                "StoryCut"
             )
             if (!moviesDir.exists()) moviesDir.mkdirs()
 

@@ -83,4 +83,10 @@ dependencies {
   implementation(libs.androidx.navigation3.ui)
   implementation(libs.androidx.navigation3.runtime)
   implementation(libs.androidx.lifecycle.viewmodel.navigation3)
+
+  // Google Play Billing
+  implementation("com.android.billingclient:billing-ktx:7.1.1")
+
+  // Google Mobile Ads (AdMob)
+  implementation("com.google.android.gms:play-services-ads:23.6.0")
 }

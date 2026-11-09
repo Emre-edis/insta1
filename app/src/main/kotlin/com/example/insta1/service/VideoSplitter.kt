@@ -22,6 +22,7 @@ object VideoSplitter {
         sourceUri: Uri,
         originalFileName: String,
         segmentDurationMs: Long = 60_000L, // 1 minute default
+        isPro: Boolean = false,
         onProgress: (SplitProgress) -> Unit
     ): List<VideoSegment> = withContext(Dispatchers.IO) {
         val segments = mutableListOf<VideoSegment>()
@@ -170,14 +171,16 @@ object VideoSplitter {
                 // Save to Gallery
                 val formattedPart = String.format("%02d", partNumber)
                 val formattedTotal = String.format("%02d", totalParts)
-                val displayName = "insta1_${cleanName}_part_${formattedPart}_of_${formattedTotal}.mp4"
+                val prefix = if (isPro) "StoryCut" else "StoryCut_Watermarked"
+                val displayName = "${prefix}_${cleanName}_part_${formattedPart}_of_${formattedTotal}.mp4"
 
+                val watermarkNote = if (!isPro) " [StoryCut Watermark]" else " [PRO No Watermark]"
                 onProgress(
                     SplitProgress(
                         currentPart = partNumber,
                         totalParts = totalParts,
                         percentage = ((partIndex + 0.9f) / totalParts.toFloat()),
-                        statusText = "Saving part $partNumber of $totalParts to Gallery..."
+                        statusText = "Saving part $partNumber of $totalParts to Gallery$watermarkNote..."
                     )
                 )
 

@@ -9,3 +9,14 @@
 
 # Keep data models
 -keep class com.example.insta1.model.** { *; }
+
+# Google Play Billing
+-keep class com.android.billingclient.** { *; }
+
+# Google Mobile Ads
+-keep public class com.google.android.gms.ads.** {
+   public *;
+}
+-keep public class com.google.ads.** {
+   public *;
+}

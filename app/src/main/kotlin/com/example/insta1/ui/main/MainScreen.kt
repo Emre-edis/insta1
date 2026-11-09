@@ -1,5 +1,6 @@
 package com.example.insta1.ui.main
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -42,6 +43,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -67,7 +69,9 @@ import androidx.compose.ui.unit.sp
 import com.example.insta1.model.SplitProgress
 import com.example.insta1.model.VideoInfo
 import com.example.insta1.model.VideoSegment
+import com.example.insta1.service.BillingManager
 import com.example.insta1.service.VideoSplitter
+import com.example.insta1.ui.ad.AdBannerView
 import com.example.insta1.util.VideoUtils
 import kotlinx.coroutines.launch
 import kotlin.math.ceil
@@ -87,7 +91,11 @@ val InstaGradient = Brush.horizontalGradient(
 @Composable
 fun MainScreen() {
     val context = LocalContext.current
+    val activity = context as? Activity
     val scope = rememberCoroutineScope()
+
+    val billingManager = remember { BillingManager(context, scope) }
+    val isPro by billingManager.isProUnlocked.collectAsState()
 
     var selectedVideo by remember { mutableStateOf<VideoInfo?>(null) }
     var segmentDurationMs by remember { mutableLongStateOf(60_000L) } // 60s default
@@ -108,7 +116,10 @@ fun MainScreen() {
     }
 
     Scaffold(
-        containerColor = InstaDark
+        containerColor = InstaDark,
+        bottomBar = {
+            AdBannerView(isPro = isPro)
+        }
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
@@ -121,6 +132,22 @@ fun MainScreen() {
             // 1. Header & Brand
             item {
                 HeaderSection()
+            }
+
+            // 1.5 PRO Banner
+            item {
+                StoryCutProCard(
+                    isPro = isPro,
+                    onUpgradeClick = {
+                        activity?.let { billingManager.launchPurchaseFlow(it) }
+                    },
+                    onRestoreClick = {
+                        billingManager.queryPurchases()
+                    },
+                    onTestToggle = {
+                        billingManager.toggleTestPro()
+                    }
+                )
             }
 
             // 2. Video Picker Section
@@ -158,6 +185,7 @@ fun MainScreen() {
                                         sourceUri = selectedVideo!!.uri,
                                         originalFileName = selectedVideo!!.name,
                                         segmentDurationMs = segmentDurationMs,
+                                        isPro = isPro,
                                         onProgress = { progress ->
                                             progressState = progress
                                         }
@@ -226,7 +254,7 @@ fun MainScreen() {
             // 6. Completed Segments List
             if (completedSegments.isNotEmpty()) {
                 item {
-                    SuccessHeader(totalParts = completedSegments.size)
+                    SuccessHeader(totalParts = completedSegments.size, isPro = isPro)
                 }
 
                 items(completedSegments) { segment ->
@@ -261,25 +289,136 @@ fun HeaderSection() {
         ) {
             Image(
                 painter = painterResource(id = com.example.insta1.R.drawable.app_logo),
-                contentDescription = "Insta1' Logo",
+                contentDescription = "StoryCut Logo",
                 modifier = Modifier
-                    .size(52.dp)
+                    .size(54.dp)
                     .clip(RoundedCornerShape(14.dp)),
                 contentScale = ContentScale.Crop
             )
             Column {
                 Text(
-                    text = "Insta1'",
+                    text = "StoryCut",
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Black,
                     color = Color.White,
                     letterSpacing = 1.sp
                 )
                 Text(
-                    text = "Automatic 1-Minute Video Splitter & Gallery Exporter",
+                    text = "Smart 1-Minute Video Splitter for Stories & Reels",
                     fontSize = 12.sp,
                     color = Color(0xFFA0A5B5)
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun StoryCutProCard(
+    isPro: Boolean,
+    onUpgradeClick: () -> Unit,
+    onRestoreClick: () -> Unit,
+    onTestToggle: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isPro) Color(0xFF132A1E) else Color(0xFF22162B)
+        ),
+        border = CardDefaults.outlinedCardBorder().copy(
+            brush = if (isPro) Brush.horizontalGradient(listOf(InstaGreen, Color(0xFF059669)))
+            else Brush.horizontalGradient(listOf(Color(0xFFFFD700), InstaOrange, InstaPink))
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(text = if (isPro) "👑" else "✨", fontSize = 20.sp)
+                    Text(
+                        text = if (isPro) "StoryCut PRO Active" else "StoryCut PRO (50¢)",
+                        color = if (isPro) InstaGreen else Color(0xFFFFD700),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+                }
+
+                if (isPro) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(InstaGreen.copy(alpha = 0.2f))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "NO WATERMARK • NO ADS",
+                            color = InstaGreen,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            Text(
+                text = if (isPro) {
+                    "Lifetime Access Active: Split videos cleanly with zero watermark, maximum remuxing speed, and no banner ads!"
+                } else {
+                    "Upgrade once for \$0.50: Remove the 'StoryCut' watermark from videos, unlock ultra-fast lossless remuxing, and remove all ads."
+                },
+                color = Color.White.copy(alpha = 0.85f),
+                fontSize = 12.sp,
+                lineHeight = 17.sp
+            )
+
+            if (!isPro) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Button(
+                        onClick = onUpgradeClick,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFFF9800)
+                        )
+                    ) {
+                        Text(
+                            text = "BUY PRO ($0.50)",
+                            color = Color.Black,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 13.sp
+                        )
+                    }
+
+                    OutlinedButton(
+                        onClick = onRestoreClick,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(text = "Restore", fontSize = 12.sp, color = Color.White)
+                    }
+
+                    OutlinedButton(
+                        onClick = onTestToggle,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(text = "Dev Test", fontSize = 11.sp, color = Color.Gray)
+                    }
+                }
             }
         }
     }
@@ -521,7 +660,7 @@ fun ProgressCard(progress: SplitProgress) {
 }
 
 @Composable
-fun SuccessHeader(totalParts: Int) {
+fun SuccessHeader(totalParts: Int, isPro: Boolean) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -544,7 +683,11 @@ fun SuccessHeader(totalParts: Int) {
                     fontSize = 14.sp
                 )
                 Text(
-                    text = "$totalParts clips added sequentially to 'Movies/Insta1' album.",
+                    text = if (isPro) {
+                        "$totalParts clean clips added to 'Movies/StoryCut' without watermark."
+                    } else {
+                        "$totalParts clips added to 'Movies/StoryCut' (StoryCut watermark applied. Upgrade to PRO to remove!)."
+                    },
                     color = Color.White.copy(alpha = 0.8f),
                     fontSize = 12.sp
                 )
