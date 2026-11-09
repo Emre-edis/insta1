@@ -27,7 +27,8 @@ class BillingManager(
 ) : PurchasesUpdatedListener {
 
     companion object {
-        const val PRODUCT_ID_PRO = "storycut_pro_50c"
+        const val PRODUCT_ID_PRO = "storycut_pro_199"
+        const val PRODUCT_ID_PRO_LEGACY = "storycut_pro_50c"
         private const val PREFS_NAME = "storycut_secure_prefs"
         private const val KEY_IS_PRO = "is_storycut_pro_unlocked"
     }
@@ -104,7 +105,7 @@ class BillingManager(
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                 val hasPurchased = purchases.any { purchase ->
                     purchase.purchaseState == Purchase.PurchaseState.PURCHASED &&
-                            purchase.products.contains(PRODUCT_ID_PRO)
+                            (purchase.products.contains(PRODUCT_ID_PRO) || purchase.products.contains(PRODUCT_ID_PRO_LEGACY))
                 }
                 if (hasPurchased) {
                     setProUnlocked(true)

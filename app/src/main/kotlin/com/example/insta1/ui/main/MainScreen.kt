@@ -96,6 +96,8 @@ fun MainScreen() {
 
     val billingManager = remember { BillingManager(context, scope) }
     val isPro by billingManager.isProUnlocked.collectAsState()
+    val productDetails by billingManager.productDetails.collectAsState()
+    val priceLabel = productDetails?.oneTimePurchaseOfferDetails?.formattedPrice ?: "$1.99"
 
     var selectedVideo by remember { mutableStateOf<VideoInfo?>(null) }
     var segmentDurationMs by remember { mutableLongStateOf(60_000L) } // 60s default
@@ -138,6 +140,7 @@ fun MainScreen() {
             item {
                 StoryCutProCard(
                     isPro = isPro,
+                    priceLabel = priceLabel,
                     onUpgradeClick = {
                         activity?.let { billingManager.launchPurchaseFlow(it) }
                     },
@@ -316,6 +319,7 @@ fun HeaderSection() {
 @Composable
 fun StoryCutProCard(
     isPro: Boolean,
+    priceLabel: String = "$1.99",
     onUpgradeClick: () -> Unit,
     onRestoreClick: () -> Unit,
     onTestToggle: () -> Unit
@@ -348,7 +352,7 @@ fun StoryCutProCard(
                 ) {
                     Text(text = if (isPro) "👑" else "✨", fontSize = 20.sp)
                     Text(
-                        text = if (isPro) "StoryCut PRO Active" else "StoryCut PRO (50¢)",
+                        text = if (isPro) "StoryCut PRO Active" else "StoryCut PRO ($priceLabel)",
                         color = if (isPro) InstaGreen else Color(0xFF38BDF8),
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp
@@ -376,7 +380,7 @@ fun StoryCutProCard(
                 text = if (isPro) {
                     "Lifetime Access Active: Split videos cleanly with zero watermark, maximum remuxing speed, and no banner ads!"
                 } else {
-                    "Upgrade once for \$0.50: Remove the 'StoryCut' watermark from videos, unlock ultra-fast lossless remuxing, and remove all ads."
+                    "Upgrade once for $priceLabel: Remove the 'StoryCut' watermark from videos, unlock ultra-fast lossless remuxing, and remove all ads."
                 },
                 color = Color.White.copy(alpha = 0.85f),
                 fontSize = 12.sp,
@@ -398,7 +402,7 @@ fun StoryCutProCard(
                         )
                     ) {
                         Text(
-                            text = "BUY PRO ($0.50)",
+                            text = "BUY PRO ($priceLabel)",
                             color = Color.White,
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 13.sp
