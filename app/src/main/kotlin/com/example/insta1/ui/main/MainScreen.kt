@@ -9,10 +9,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +24,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -37,10 +40,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -77,16 +78,17 @@ import com.example.insta1.util.VideoUtils
 import kotlinx.coroutines.launch
 import kotlin.math.ceil
 
-val InstaPurple = Color(0xFF00E5FF)       // Electric Cyan / Light Blue
-val InstaPink = Color(0xFF0070F3)         // Vivid Sapphire Blue
-val InstaOrange = Color(0xFF38BDF8)       // Sky Blue
-val InstaDark = Color(0xFF05070B)         // Pitch Solid Black Background
-val InstaCardDark = Color(0xFF0B101C)     // Deep Midnight Card
-val InstaCardBorder = Color(0xFF17243B)   // Neon Blue Border
-val InstaGreen = Color(0xFF10B981)
+// Neon Cyan & Sapphire Blue Aesthetics
+val NeonCyan = Color(0xFF00E5FF)          // Electric Cyan (#00E5FF)
+val NeonSapphire = Color(0xFF0070F3)      // Vivid Sapphire Blue (#0070F3)
+val NeonSkyBlue = Color(0xFF38BDF8)       // Sky Blue (#38BDF8)
+val AppDarkBg = Color(0xFF050811)         // Midnight Obsidian Black (#050811)
+val AppCardBg = Color(0xFF080F1D)         // Sleek Dark Slate Card (#080F1D)
+val AppCardBorder = Color(0xFF132238)     // Subtle Card Border
+val AppGreen = Color(0xFF10B981)          // Success Emerald Green
 
-val InstaGradient = Brush.horizontalGradient(
-    listOf(InstaPurple, InstaPink, Color(0xFF003882))
+val NeonGlowGradient = Brush.horizontalGradient(
+    listOf(NeonCyan, NeonSapphire)
 )
 
 @Composable
@@ -121,7 +123,7 @@ fun MainScreen() {
     }
 
     Scaffold(
-        containerColor = InstaDark,
+        containerColor = AppDarkBg,
         bottomBar = {
             AdBannerView(isPro = isPro)
         }
@@ -131,7 +133,7 @@ fun MainScreen() {
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp),
-            contentPadding = PaddingValues(vertical = 20.dp),
+            contentPadding = PaddingValues(top = 8.dp, bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // 1. Header & Brand
@@ -139,7 +141,7 @@ fun MainScreen() {
                 HeaderSection()
             }
 
-            // 1.5 PRO Banner
+            // 1.5 PRO Banner (Lifetime One-Time Purchase)
             item {
                 StoryCutProCard(
                     isPro = isPro,
@@ -178,7 +180,7 @@ fun MainScreen() {
                     )
                 }
 
-                // 4. Action Button
+                // 4. Action Button ("CUT & SAVE")
                 item {
                     Button(
                         onClick = {
@@ -207,7 +209,7 @@ fun MainScreen() {
                         enabled = !isProcessing,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp),
+                            .height(54.dp),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                         contentPadding = PaddingValues()
@@ -216,8 +218,8 @@ fun MainScreen() {
                             modifier = Modifier
                                 .fillMaxSize()
                                 .background(
-                                    if (isProcessing) Brush.horizontalGradient(listOf(Color.Gray, Color.DarkGray))
-                                    else InstaGradient
+                                    if (isProcessing) Brush.horizontalGradient(listOf(Color(0xFF334155), Color(0xFF1E293B)))
+                                    else NeonGlowGradient
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
@@ -243,7 +245,7 @@ fun MainScreen() {
                                 Text(
                                     text = "CUT & SAVE",
                                     color = Color.White,
-                                    fontWeight = FontWeight.Bold,
+                                    fontWeight = FontWeight.ExtraBold,
                                     fontSize = 16.sp,
                                     letterSpacing = 1.sp
                                 )
@@ -288,43 +290,47 @@ fun MainScreen() {
 
 @Composable
 fun HeaderSection() {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        // Squircle App Icon with Subtle Neon Cyan Border
+        Box(
+            modifier = Modifier
+                .size(52.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(AppCardBg)
+                .border(1.2.dp, NeonCyan.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
+            contentAlignment = Alignment.Center
         ) {
             Image(
                 painter = painterResource(id = com.example.insta1.R.drawable.app_logo),
                 contentDescription = "StoryCut Logo",
-                modifier = Modifier.size(52.dp),
+                modifier = Modifier
+                    .size(46.dp)
+                    .clip(RoundedCornerShape(12.dp)),
                 contentScale = ContentScale.Fit
             )
-            Column {
-                Row {
-                    Text(
-                        text = "Story",
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Black,
-                        color = Color.White,
-                        letterSpacing = 1.sp
-                    )
-                    Text(
-                        text = "Cut",
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Black,
-                        color = Color(0xFF00E5FF),
-                        letterSpacing = 1.sp
-                    )
-                }
-                Text(
-                    text = "Smart 1-Minute Video Splitter for Stories & Reels",
-                    fontSize = 12.sp,
-                    color = Color(0xFFA0A5B5)
-                )
-            }
+        }
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "StoryCut",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                letterSpacing = 0.5.sp
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "Smart 1-Minute Video Splitter for Stories & Reels",
+                fontSize = 12.sp,
+                color = Color(0xFF94A3B8),
+                lineHeight = 16.sp
+            )
         }
     }
 }
@@ -337,104 +343,160 @@ fun StoryCutProCard(
     onRestoreClick: () -> Unit,
     onTestToggle: () -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isPro) Color(0xFF0C1E16) else Color(0xFF091120)
-        ),
-        border = CardDefaults.outlinedCardBorder().copy(
-            brush = if (isPro) Brush.horizontalGradient(listOf(InstaGreen, Color(0xFF059669)))
-            else Brush.horizontalGradient(listOf(Color(0xFF00E5FF), Color(0xFF0070F3), Color(0xFF003882)))
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(text = if (isPro) "👑" else "✨", fontSize = 20.sp)
-                    Text(
-                        text = if (isPro) "StoryCut Lifetime PRO Active" else "StoryCut Lifetime PRO",
-                        color = if (isPro) InstaGreen else Color(0xFF38BDF8),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(
-                            if (isPro) InstaGreen.copy(alpha = 0.2f)
-                            else Color(0xFF0070F3).copy(alpha = 0.25f)
-                        )
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = if (isPro) "NO WATERMARK • NO ADS" else "NO MONTHLY FEES",
-                        color = if (isPro) InstaGreen else Color(0xFF00E5FF),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            Text(
-                text = if (isPro) {
-                    "Lifetime Access Active: Split videos cleanly with zero watermark, maximum remuxing speed, and no ads forever!"
-                } else {
-                    "No Monthly Fees! Pay Once ($priceLabel), Own Forever: Remove the 'StoryCut' watermark from videos, unlock ultra-fast lossless remuxing, and eliminate all ads."
-                },
-                color = Color.White.copy(alpha = 0.85f),
-                fontSize = 12.sp,
-                lineHeight = 17.sp
+    // Ambient Neon Cyan Glow Container
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .background(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        if (isPro) AppGreen.copy(alpha = 0.15f) else NeonCyan.copy(alpha = 0.18f),
+                        Color.Transparent
+                    ),
+                    radius = 450f
+                ),
+                shape = RoundedCornerShape(26.dp)
             )
-
-            if (!isPro) {
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(22.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = if (isPro) Color(0xFF061714) else AppCardBg
+            ),
+            border = BorderStroke(
+                1.8.dp,
+                if (isPro) Brush.horizontalGradient(listOf(AppGreen, Color(0xFF059669)))
+                else Brush.horizontalGradient(listOf(NeonCyan, NeonSapphire))
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Header Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Button(
-                        onClick = onUpgradeClick,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF0070F3)
+                    Row(
+                        modifier = Modifier.clickable { onTestToggle() },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(text = if (isPro) "👑" else "✨", fontSize = 20.sp)
+                        Text(
+                            text = if (isPro) "StoryCut Lifetime PRO Active" else "StoryCut Lifetime PRO",
+                            color = if (isPro) AppGreen else NeonSkyBlue,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
                         )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(
+                                if (isPro) AppGreen.copy(alpha = 0.2f)
+                                else Color(0xFF003852)
+                            )
+                            .border(
+                                1.dp,
+                                if (isPro) AppGreen.copy(alpha = 0.5f)
+                                else NeonCyan.copy(alpha = 0.4f),
+                                RoundedCornerShape(10.dp)
+                            )
+                            .padding(horizontal = 9.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = "PAY ONCE ($priceLabel)",
-                            color = Color.White,
+                            text = if (isPro) "NO WATERMARK • NO ADS" else "NO MONTHLY FEES",
+                            color = if (isPro) AppGreen else NeonCyan,
+                            fontSize = 10.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            fontSize = 13.sp
+                            letterSpacing = 0.5.sp
                         )
                     }
+                }
 
-                    OutlinedButton(
-                        onClick = onRestoreClick,
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text(text = "Restore", fontSize = 12.sp, color = Color.White)
+                if (isPro) {
+                    Text(
+                        text = "Lifetime Access Active: Split videos cleanly with zero watermark, maximum lossless remuxing speed, and no ads forever!",
+                        color = Color.White.copy(alpha = 0.9f),
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp
+                    )
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                        Text(
+                            text = "No Monthly Fees! Pay Once ($priceLabel), Own Forever:",
+                            color = Color(0xFFE2E8F0),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+
+                        ProFeatureItem("Remove 'StoryCut' watermark")
+                        ProFeatureItem("Ultra-fast lossless remuxing")
+                        ProFeatureItem("Eliminate all ads")
                     }
 
-                    OutlinedButton(
-                        onClick = onTestToggle,
-                        shape = RoundedCornerShape(12.dp)
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = "Dev Test", fontSize = 11.sp, color = Color.Gray)
+                        // Pay Once Button with vibrant cyan-blue gradient
+                        Button(
+                            onClick = onUpgradeClick,
+                            modifier = Modifier
+                                .weight(1.3f)
+                                .height(48.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                            contentPadding = PaddingValues()
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            listOf(NeonSapphire, NeonCyan)
+                                        )
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "PAY ONCE ($priceLabel)",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 13.sp,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
+                        }
+
+                        // Restore Purchases Button
+                        Button(
+                            onClick = onRestoreClick,
+                            modifier = Modifier
+                                .weight(0.9f)
+                                .height(48.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D1929)),
+                            border = BorderStroke(1.2.dp, Color(0xFF1E3A5F))
+                        ) {
+                            Text(
+                                text = "Restore",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFFE2E8F0)
+                            )
+                        }
                     }
                 }
             }
@@ -443,101 +505,177 @@ fun StoryCutProCard(
 }
 
 @Composable
+private fun ProFeatureItem(text: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = "✓",
+            color = NeonCyan,
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 14.sp
+        )
+        Text(
+            text = text,
+            color = Color.White.copy(alpha = 0.95f),
+            fontSize = 13.sp
+        )
+    }
+}
+
+@Composable
 fun VideoPickerCard(
     selectedVideo: VideoInfo?,
     onPickClick: () -> Unit
 ) {
-    Card(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onPickClick() },
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = InstaCardDark),
-        border = CardDefaults.outlinedCardBorder().copy(brush = Brush.linearGradient(listOf(InstaCardBorder, InstaPurple.copy(alpha = 0.5f))))
+            .padding(top = 4.dp, bottom = if (selectedVideo == null) 20.dp else 4.dp),
+        contentAlignment = Alignment.BottomCenter
     ) {
-        if (selectedVideo == null) {
-            Column(
+        // Glowing Background Aura
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(NeonCyan.copy(alpha = 0.16f), Color.Transparent),
+                        radius = 450f
+                    ),
+                    shape = RoundedCornerShape(26.dp)
+                )
+        ) {
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(64.dp)
-                        .clip(CircleShape)
-                        .background(InstaPurple.copy(alpha = 0.2f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(text = "🎬", fontSize = 28.sp)
-                }
-                Text(
-                    text = "Select Video from Gallery",
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-                Text(
-                    text = "Pick a video of any duration; the app will split it into sequential 1-minute clips automatically.",
-                    fontSize = 12.sp,
-                    color = Color.Gray,
-                    textAlign = TextAlign.Center
-                )
-            }
-        } else {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                if (selectedVideo.thumbnail != null) {
-                    Image(
-                        bitmap = selectedVideo.thumbnail.asImageBitmap(),
-                        contentDescription = "Video Thumbnail",
-                        modifier = Modifier
-                            .size(70.dp)
-                            .clip(RoundedCornerShape(12.dp)),
-                        contentScale = ContentScale.Crop
+                    .clickable { onPickClick() },
+                shape = RoundedCornerShape(22.dp),
+                colors = CardDefaults.cardColors(containerColor = AppCardBg),
+                border = BorderStroke(
+                    1.8.dp,
+                    Brush.horizontalGradient(
+                        listOf(
+                            NeonCyan.copy(alpha = 0.9f),
+                            NeonSapphire.copy(alpha = 0.65f)
+                        )
                     )
-                } else {
-                    Box(
+                )
+            ) {
+                if (selectedVideo == null) {
+                    Column(
                         modifier = Modifier
-                            .size(70.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color.DarkGray),
-                        contentAlignment = Alignment.Center
+                            .fillMaxWidth()
+                            .padding(top = 28.dp, bottom = 38.dp, start = 20.dp, end = 20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text(text = "▶", color = Color.White, fontSize = 24.sp)
+                        // Halo around Slate/Clapperboard
+                        Box(
+                            modifier = Modifier
+                                .size(70.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF003848))
+                                .border(1.2.dp, NeonCyan.copy(alpha = 0.35f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(text = "🎬", fontSize = 30.sp)
+                        }
+
+                        Text(
+                            text = "Select Video from Gallery",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+
+                        Text(
+                            text = "Pick a video of any duration; the app will split it into sequential 1-minute clips automatically.",
+                            fontSize = 13.sp,
+                            color = Color(0xFF94A3B8),
+                            textAlign = TextAlign.Center,
+                            lineHeight = 18.sp
+                        )
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        if (selectedVideo.thumbnail != null) {
+                            Image(
+                                bitmap = selectedVideo.thumbnail.asImageBitmap(),
+                                contentDescription = "Video Thumbnail",
+                                modifier = Modifier
+                                    .size(72.dp)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .border(1.dp, NeonCyan.copy(alpha = 0.4f), RoundedCornerShape(14.dp)),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(72.dp)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(Color(0xFF0F1E33)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(text = "▶", color = NeonCyan, fontSize = 26.sp)
+                            }
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = selectedVideo.name,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Duration: ${VideoUtils.formatDuration(selectedVideo.durationMs)}  •  Size: ${VideoUtils.formatFileSize(selectedVideo.sizeBytes)}",
+                                color = Color(0xFF94A3B8),
+                                fontSize = 12.sp,
+                                fontFamily = FontFamily.Monospace
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Tap to choose a different video ↻",
+                                color = NeonCyan,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
                 }
+            }
+        }
 
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = selectedVideo.name,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Duration: ${VideoUtils.formatDuration(selectedVideo.durationMs)}  •  Size: ${VideoUtils.formatFileSize(selectedVideo.sizeBytes)}",
-                        color = Color(0xFFA0A5B5),
-                        fontSize = 12.sp,
-                        fontFamily = FontFamily.Monospace
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "Tap to choose a different video ↻",
-                        color = InstaOrange,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+        // Floating '+' squircle button overlapping the bottom border (exact match to screenshot!)
+        if (selectedVideo == null) {
+            Box(
+                modifier = Modifier
+                    .offset(y = 20.dp)
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(13.dp))
+                    .background(AppCardBg)
+                    .border(1.8.dp, NeonCyan, RoundedCornerShape(13.dp))
+                    .clickable { onPickClick() },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "+",
+                    color = NeonCyan,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.offset(y = (-1).dp)
+                )
             }
         }
     }
@@ -553,8 +691,8 @@ fun ConfigurationCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = InstaCardDark),
-        border = CardDefaults.outlinedCardBorder().copy(brush = Brush.linearGradient(listOf(InstaCardBorder, InstaCardBorder)))
+        colors = CardDefaults.cardColors(containerColor = AppCardBg),
+        border = BorderStroke(1.2.dp, NeonCyan.copy(alpha = 0.35f))
     ) {
         Column(
             modifier = Modifier
@@ -576,12 +714,13 @@ fun ConfigurationCard(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(InstaPurple.copy(alpha = 0.3f))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .background(Color(0xFF003852))
+                        .border(1.dp, NeonCyan.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 9.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = "$totalParts Segments Total",
-                        color = Color(0xFFE0C3FC),
+                        color = NeonCyan,
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp
                     )
@@ -611,10 +750,10 @@ fun ConfigurationCard(
                             )
                         },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = InstaPink,
+                            selectedContainerColor = NeonSapphire,
                             selectedLabelColor = Color.White,
-                            containerColor = InstaDark,
-                            labelColor = Color.Gray
+                            containerColor = Color(0xFF0F1E33),
+                            labelColor = Color(0xFF94A3B8)
                         )
                     )
                 }
@@ -627,9 +766,9 @@ fun ConfigurationCard(
 fun ProgressCard(progress: SplitProgress) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = InstaCardDark),
-        border = CardDefaults.outlinedCardBorder().copy(brush = Brush.linearGradient(listOf(InstaPurple, InstaPink)))
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = AppCardBg),
+        border = BorderStroke(1.5.dp, Brush.horizontalGradient(listOf(NeonCyan, NeonSapphire)))
     ) {
         Column(
             modifier = Modifier
@@ -649,7 +788,7 @@ fun ProgressCard(progress: SplitProgress) {
                 )
                 Text(
                     text = "%${(progress.percentage * 100).toInt()}",
-                    color = InstaOrange,
+                    color = NeonCyan,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace
@@ -662,8 +801,8 @@ fun ProgressCard(progress: SplitProgress) {
                     .fillMaxWidth()
                     .height(8.dp)
                     .clip(RoundedCornerShape(4.dp)),
-                color = InstaPink,
-                trackColor = InstaDark
+                color = NeonCyan,
+                trackColor = Color(0xFF0F1E33)
             )
 
             if (progress.error != null) {
@@ -681,9 +820,9 @@ fun ProgressCard(progress: SplitProgress) {
 fun SuccessHeader(totalParts: Int, isPro: Boolean) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = InstaGreen.copy(alpha = 0.15f)),
-        border = CardDefaults.outlinedCardBorder().copy(brush = Brush.linearGradient(listOf(InstaGreen, InstaGreen)))
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF062016)),
+        border = BorderStroke(1.4.dp, AppGreen)
     ) {
         Row(
             modifier = Modifier
@@ -696,7 +835,7 @@ fun SuccessHeader(totalParts: Int, isPro: Boolean) {
             Column {
                 Text(
                     text = "All Segments Saved to Gallery!",
-                    color = InstaGreen,
+                    color = AppGreen,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp
                 )
@@ -706,7 +845,7 @@ fun SuccessHeader(totalParts: Int, isPro: Boolean) {
                     } else {
                         "$totalParts clips added to 'Movies/StoryCut' (StoryCut watermark applied. Upgrade to PRO to remove!)."
                     },
-                    color = Color.White.copy(alpha = 0.8f),
+                    color = Color.White.copy(alpha = 0.85f),
                     fontSize = 12.sp
                 )
             }
@@ -722,9 +861,9 @@ fun SegmentItemCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = InstaCardDark),
-        border = CardDefaults.outlinedCardBorder().copy(brush = Brush.linearGradient(listOf(InstaCardBorder, InstaCardBorder)))
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = AppCardBg),
+        border = BorderStroke(1.2.dp, NeonCyan.copy(alpha = 0.25f))
     ) {
         Row(
             modifier = Modifier
@@ -741,7 +880,8 @@ fun SegmentItemCard(
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
-                        .background(InstaPurple.copy(alpha = 0.2f)),
+                        .background(NeonCyan.copy(alpha = 0.15f))
+                        .border(1.dp, NeonCyan.copy(alpha = 0.3f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -761,17 +901,18 @@ fun SegmentItemCard(
                     )
                     Text(
                         text = "${VideoUtils.formatDuration(segment.startTimeMs)} - ${VideoUtils.formatDuration(segment.endTimeMs)} (${VideoUtils.formatDuration(segment.durationMs)})",
-                        color = Color(0xFFA0A5B5),
+                        color = Color(0xFF94A3B8),
                         fontSize = 11.sp,
                         fontFamily = FontFamily.Monospace
                     )
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(
                     onClick = onOpenInGallery,
                     shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, Color(0xFF1E3A5F)),
                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                 ) {
                     Text(text = "Open", fontSize = 11.sp, color = Color.White)
@@ -780,10 +921,17 @@ fun SegmentItemCard(
                 Button(
                     onClick = onShare,
                     shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = InstaPurple),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                    contentPadding = PaddingValues()
                 ) {
-                    Text(text = "Share", fontSize = 11.sp, color = Color.White)
+                    Box(
+                        modifier = Modifier
+                            .background(NeonGlowGradient, RoundedCornerShape(10.dp))
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = "Share", fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
