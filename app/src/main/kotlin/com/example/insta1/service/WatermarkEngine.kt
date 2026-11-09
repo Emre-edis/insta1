@@ -6,9 +6,6 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.PorterDuff
-import android.graphics.PorterDuffXfermode
-import android.graphics.RectF
 import android.graphics.Typeface
 import android.net.Uri
 import androidx.annotation.OptIn
@@ -33,48 +30,55 @@ import java.io.File
 object WatermarkEngine {
 
     fun createWatermarkBitmap(context: Context): Bitmap {
-        val rawIcon = BitmapFactory.decodeResource(context.resources, R.drawable.app_logo)
+        val emblemRaw = BitmapFactory.decodeResource(context.resources, R.drawable.watermark_emblem)
 
-        val iconSize = 200
-        val textHeight = 44
-        val spacing = 8
-        val totalWidth = 220
-        val totalHeight = iconSize + spacing + textHeight
-
-        val bitmap = Bitmap.createBitmap(totalWidth, totalHeight, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-
-        if (rawIcon != null) {
-            val scaledIcon = Bitmap.createScaledBitmap(rawIcon, iconSize, iconSize, true)
-
-            // Round the icon into a squircle with smooth transparent corners
-            val roundedIconBitmap = Bitmap.createBitmap(iconSize, iconSize, Bitmap.Config.ARGB_8888)
-            val iconCanvas = Canvas(roundedIconBitmap)
-            val clipPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-            val rect = RectF(0f, 0f, iconSize.toFloat(), iconSize.toFloat())
-            val cornerRadius = iconSize * 0.22f // ~44px rounded squircle
-            iconCanvas.drawRoundRect(rect, cornerRadius, cornerRadius, clipPaint)
-            clipPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
-            iconCanvas.drawBitmap(scaledIcon, 0f, 0f, clipPaint)
-
-            // Draw rounded icon centered horizontally
-            val iconX = (totalWidth - iconSize) / 2f
-            canvas.drawBitmap(roundedIconBitmap, iconX, 0f, null)
+        val emblemW = 200
+        val emblemH = if (emblemRaw != null && emblemRaw.width > 0) {
+            (emblemW.toFloat() * (emblemRaw.height.toFloat() / emblemRaw.width.toFloat())).toInt()
+        } else {
+            175
         }
 
-        // Draw "StoryCut" text directly underneath the icon
-        val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        val spacing = 8
+        val textHeight = 40
+
+        val paintStory = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
             textSize = 34f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            textAlign = Paint.Align.CENTER
-            // Subtle drop shadow for clarity on all video backgrounds
-            setShadowLayer(6f, 0f, 2f, Color.argb(200, 0, 0, 0))
+            setShadowLayer(6f, 0f, 2f, Color.argb(190, 0, 0, 0))
         }
 
-        val textX = totalWidth / 2f
-        val textY = iconSize + spacing + 32f
-        canvas.drawText("StoryCut", textX, textY, textPaint)
+        val paintCut = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.rgb(0, 229, 255) // Cyan
+            textSize = 34f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            setShadowLayer(6f, 0f, 2f, Color.argb(190, 0, 0, 0))
+        }
+
+        val storyWidth = paintStory.measureText("Story")
+        val cutWidth = paintCut.measureText("Cut")
+        val totalTextWidth = storyWidth + cutWidth
+
+        val totalW = maxOf(emblemW, (totalTextWidth + 16).toInt())
+        val totalH = emblemH + spacing + textHeight
+
+        val bitmap = Bitmap.createBitmap(totalW, totalH, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+
+        // 1. Draw Emblem squircle centered horizontally
+        if (emblemRaw != null) {
+            val emblemScaled = Bitmap.createScaledBitmap(emblemRaw, emblemW, emblemH, true)
+            val emblemX = (totalW - emblemW) / 2f
+            canvas.drawBitmap(emblemScaled, emblemX, 0f, null)
+        }
+
+        // 2. Draw "Story" (White) + "Cut" (Cyan) directly below the emblem
+        val textStartX = (totalW - totalTextWidth) / 2f
+        val textY = emblemH + spacing + 30f
+
+        canvas.drawText("Story", textStartX, textY, paintStory)
+        canvas.drawText("Cut", textStartX + storyWidth, textY, paintCut)
 
         return bitmap
     }
@@ -102,7 +106,7 @@ object WatermarkEngine {
         val safeVidH = if (videoHeight > 0) videoHeight else 1920
 
         // Scale relative to narrower video dimension so it is proportional on all aspect ratios
-        val targetWidthPx = minOf(safeVidW, safeVidH) * 0.20f
+        val targetWidthPx = minOf(safeVidW, safeVidH) * 0.17f
         val scaleFactor = targetWidthPx / wmWidth.toFloat()
         val scaleX = (wmWidth * scaleFactor / safeVidW.toFloat()) * 2.0f
         val scaleY = (wmHeight * scaleFactor / safeVidH.toFloat()) * 2.0f
