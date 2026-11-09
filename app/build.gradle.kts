@@ -89,4 +89,10 @@ dependencies {
 
   // Google Mobile Ads (AdMob)
   implementation("com.google.android.gms:play-services-ads:23.6.0")
+
+  // Media3 Video Processing & Watermark Overlays
+  val media3Version = "1.5.1"
+  implementation("androidx.media3:media3-common:$media3Version")
+  implementation("androidx.media3:media3-transformer:$media3Version")
+  implementation("androidx.media3:media3-effect:$media3Version")
 }

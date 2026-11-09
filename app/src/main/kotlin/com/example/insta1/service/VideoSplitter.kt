@@ -81,92 +81,120 @@ object VideoSplitter {
 
             val tempFile = File(context.cacheDir, "insta1_part_${partNumber}_${System.currentTimeMillis()}.mp4")
             var muxer: MediaMuxer? = null
-            val extractor = MediaExtractor()
+            var extractor: MediaExtractor? = null
 
             try {
-                // Open source video descriptor
-                val pfd = context.contentResolver.openFileDescriptor(sourceUri, "r")
-                    ?: throw IllegalStateException("Could not open video source file.")
-                extractor.setDataSource(pfd.fileDescriptor)
-                pfd.close()
-
-                val trackCount = extractor.trackCount
-                muxer = MediaMuxer(tempFile.absolutePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
-                val trackIndexMap = HashMap<Int, Int>()
-
-                var videoTrackIndex = -1
-                for (i in 0 until trackCount) {
-                    val format = extractor.getTrackFormat(i)
-                    val mime = format.getString(MediaFormat.KEY_MIME) ?: ""
-                    if (mime.startsWith("video/") || mime.startsWith("audio/")) {
-                        val muxerTrackIndex = muxer.addTrack(format)
-                        trackIndexMap[i] = muxerTrackIndex
-                        if (mime.startsWith("video/")) {
-                            videoTrackIndex = i
-                            // Keep video rotation if available
-                            if (format.containsKey(MediaFormat.KEY_ROTATION)) {
-                                val rotation = format.getInteger(MediaFormat.KEY_ROTATION)
-                                muxer.setOrientationHint(rotation)
-                            }
-                        }
+                var watermarkApplied = false
+                if (!isPro) {
+                    try {
+                        onProgress(
+                            SplitProgress(
+                                currentPart = partNumber,
+                                totalParts = totalParts,
+                                percentage = (partIndex.toFloat() / totalParts.toFloat()),
+                                statusText = "Applying StoryCut watermark to part $partNumber of $totalParts..."
+                            )
+                        )
+                        watermarkApplied = WatermarkEngine.splitWithWatermark(
+                            context = context,
+                            sourceUri = sourceUri,
+                            startMs = startUs / 1000L,
+                            endMs = endUs / 1000L,
+                            outputFile = tempFile
+                        )
+                    } catch (_: Exception) {
+                        watermarkApplied = false
                     }
                 }
 
-                if (trackIndexMap.isEmpty()) {
-                    throw IllegalStateException("No valid video or audio tracks found.")
-                }
+                if (!watermarkApplied) {
+                    val ext = MediaExtractor()
+                    extractor = ext
 
-                muxer.start()
+                    // Open source video descriptor
+                    val pfd = context.contentResolver.openFileDescriptor(sourceUri, "r")
+                        ?: throw IllegalStateException("Could not open video source file.")
+                    ext.setDataSource(pfd.fileDescriptor)
+                    pfd.close()
 
-                // Process tracks
-                val trackPtsOffsets = HashMap<Int, Long>()
-                val trackFinished = HashMap<Int, Boolean>()
+                    val trackCount = ext.trackCount
+                    val mx = MediaMuxer(tempFile.absolutePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
+                    muxer = mx
+                    val trackIndexMap = HashMap<Int, Int>()
 
-                for (extractorTrackIndex in trackIndexMap.keys) {
-                    extractor.unselectTrack(extractorTrackIndex)
-                }
-
-                for (extractorTrackIndex in trackIndexMap.keys) {
-                    val muxerTrackIndex = trackIndexMap[extractorTrackIndex] ?: continue
-                    extractor.selectTrack(extractorTrackIndex)
-                    extractor.seekTo(startUs, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
-
-                    var firstSampleTimeUs = -1L
-
-                    while (true) {
-                        buffer.clear()
-                        val sampleSize = extractor.readSampleData(buffer, 0)
-                        if (sampleSize < 0) break
-
-                        val sampleTimeUs = extractor.sampleTime
-                        if (sampleTimeUs >= endUs) break
-
-                        if (sampleTimeUs >= startUs) {
-                            if (firstSampleTimeUs == -1L) {
-                                firstSampleTimeUs = sampleTimeUs
-                                trackPtsOffsets[extractorTrackIndex] = sampleTimeUs
+                    var videoTrackIndex = -1
+                    for (i in 0 until trackCount) {
+                        val format = ext.getTrackFormat(i)
+                        val mime = format.getString(MediaFormat.KEY_MIME) ?: ""
+                        if (mime.startsWith("video/") || mime.startsWith("audio/")) {
+                            val muxerTrackIndex = mx.addTrack(format)
+                            trackIndexMap[i] = muxerTrackIndex
+                            if (mime.startsWith("video/")) {
+                                videoTrackIndex = i
+                                // Keep video rotation if available
+                                if (format.containsKey(MediaFormat.KEY_ROTATION)) {
+                                    val rotation = format.getInteger(MediaFormat.KEY_ROTATION)
+                                    mx.setOrientationHint(rotation)
+                                }
                             }
-
-                            val offset = trackPtsOffsets[extractorTrackIndex] ?: 0L
-                            val adjustedPts = maxOf(0L, sampleTimeUs - offset)
-
-                            bufferInfo.offset = 0
-                            bufferInfo.size = sampleSize
-                            bufferInfo.presentationTimeUs = adjustedPts
-                            bufferInfo.flags = extractor.sampleFlags
-
-                            muxer.writeSampleData(muxerTrackIndex, buffer, bufferInfo)
                         }
-
-                        if (!extractor.advance()) break
                     }
 
-                    extractor.unselectTrack(extractorTrackIndex)
-                }
+                    if (trackIndexMap.isEmpty()) {
+                        throw IllegalStateException("No valid video or audio tracks found.")
+                    }
 
-                muxer.stop()
-                muxer.release()
-                muxer = null
+                    mx.start()
+
+                    // Process tracks
+                    val trackPtsOffsets = HashMap<Int, Long>()
+
+                    for (extractorTrackIndex in trackIndexMap.keys) {
+                        ext.unselectTrack(extractorTrackIndex)
+                    }
+
+                    for (extractorTrackIndex in trackIndexMap.keys) {
+                        val muxerTrackIndex = trackIndexMap[extractorTrackIndex] ?: continue
+                        ext.selectTrack(extractorTrackIndex)
+                        ext.seekTo(startUs, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
+
+                        var firstSampleTimeUs = -1L
+
+                        while (true) {
+                            buffer.clear()
+                            val sampleSize = ext.readSampleData(buffer, 0)
+                            if (sampleSize < 0) break
+
+                            val sampleTimeUs = ext.sampleTime
+                            if (sampleTimeUs >= endUs) break
+
+                            if (sampleTimeUs >= startUs) {
+                                if (firstSampleTimeUs == -1L) {
+                                    firstSampleTimeUs = sampleTimeUs
+                                    trackPtsOffsets[extractorTrackIndex] = sampleTimeUs
+                                }
+
+                                val offset = trackPtsOffsets[extractorTrackIndex] ?: 0L
+                                val adjustedPts = maxOf(0L, sampleTimeUs - offset)
+
+                                bufferInfo.offset = 0
+                                bufferInfo.size = sampleSize
+                                bufferInfo.presentationTimeUs = adjustedPts
+                                bufferInfo.flags = ext.sampleFlags
+
+                                mx.writeSampleData(muxerTrackIndex, buffer, bufferInfo)
+                            }
+
+                            if (!ext.advance()) break
+                        }
+
+                        ext.unselectTrack(extractorTrackIndex)
+                    }
+
+                    mx.stop()
+                    mx.release()
+                    muxer = null
+                }
 
                 // Save to Gallery
                 val formattedPart = String.format("%02d", partNumber)
@@ -202,7 +230,7 @@ object VideoSplitter {
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
-                try { extractor.release() } catch (_: Exception) {}
+                try { extractor?.release() } catch (_: Exception) {}
                 try { muxer?.release() } catch (_: Exception) {}
                 if (tempFile.exists()) tempFile.delete()
             }
