@@ -76,16 +76,16 @@ import com.example.insta1.util.VideoUtils
 import kotlinx.coroutines.launch
 import kotlin.math.ceil
 
-val InstaPurple = Color(0xFF833AB4)
-val InstaPink = Color(0xFFFD1D1D)
-val InstaOrange = Color(0xFFF77737)
-val InstaDark = Color(0xFF0F111A)
-val InstaCardDark = Color(0xFF1B1E2B)
-val InstaCardBorder = Color(0xFF2C3146)
+val InstaPurple = Color(0xFF00E5FF)       // Electric Cyan / Light Blue
+val InstaPink = Color(0xFF0070F3)         // Vivid Sapphire Blue
+val InstaOrange = Color(0xFF38BDF8)       // Sky Blue
+val InstaDark = Color(0xFF05070B)         // Pitch Solid Black Background
+val InstaCardDark = Color(0xFF0B101C)     // Deep Midnight Card
+val InstaCardBorder = Color(0xFF17243B)   // Neon Blue Border
 val InstaGreen = Color(0xFF10B981)
 
 val InstaGradient = Brush.horizontalGradient(
-    listOf(InstaPurple, InstaPink, InstaOrange)
+    listOf(InstaPurple, InstaPink, Color(0xFF003882))
 )
 
 @Composable
@@ -324,11 +324,11 @@ fun StoryCutProCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isPro) Color(0xFF132A1E) else Color(0xFF22162B)
+            containerColor = if (isPro) Color(0xFF0C1E16) else Color(0xFF091120)
         ),
         border = CardDefaults.outlinedCardBorder().copy(
             brush = if (isPro) Brush.horizontalGradient(listOf(InstaGreen, Color(0xFF059669)))
-            else Brush.horizontalGradient(listOf(Color(0xFFFFD700), InstaOrange, InstaPink))
+            else Brush.horizontalGradient(listOf(Color(0xFF00E5FF), Color(0xFF0070F3), Color(0xFF003882)))
         )
     ) {
         Column(
@@ -349,7 +349,7 @@ fun StoryCutProCard(
                     Text(text = if (isPro) "👑" else "✨", fontSize = 20.sp)
                     Text(
                         text = if (isPro) "StoryCut PRO Active" else "StoryCut PRO (50¢)",
-                        color = if (isPro) InstaGreen else Color(0xFFFFD700),
+                        color = if (isPro) InstaGreen else Color(0xFF38BDF8),
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp
                     )
@@ -394,12 +394,12 @@ fun StoryCutProCard(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFFF9800)
+                            containerColor = Color(0xFF0070F3)
                         )
                     ) {
                         Text(
                             text = "BUY PRO ($0.50)",
-                            color = Color.Black,
+                            color = Color.White,
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 13.sp
                         )
