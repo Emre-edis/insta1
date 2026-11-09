@@ -299,19 +299,26 @@ fun HeaderSection() {
             Image(
                 painter = painterResource(id = com.example.insta1.R.drawable.app_logo),
                 contentDescription = "StoryCut Logo",
-                modifier = Modifier
-                    .size(54.dp)
-                    .clip(RoundedCornerShape(14.dp)),
-                contentScale = ContentScale.Crop
+                modifier = Modifier.size(52.dp),
+                contentScale = ContentScale.Fit
             )
             Column {
-                Text(
-                    text = "StoryCut",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Black,
-                    color = Color.White,
-                    letterSpacing = 1.sp
-                )
+                Row {
+                    Text(
+                        text = "Story",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color.White,
+                        letterSpacing = 1.sp
+                    )
+                    Text(
+                        text = "Cut",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color(0xFF00E5FF),
+                        letterSpacing = 1.sp
+                    )
+                }
                 Text(
                     text = "Smart 1-Minute Video Splitter for Stories & Reels",
                     fontSize = 12.sp,
