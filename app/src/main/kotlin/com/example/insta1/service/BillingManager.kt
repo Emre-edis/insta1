@@ -50,89 +50,109 @@ class BillingManager(
     }
 
     private fun initBillingClient() {
-        val pendingParams = PendingPurchasesParams.newBuilder()
-            .enableOneTimeProducts()
-            .build()
+        try {
+            val pendingParams = PendingPurchasesParams.newBuilder()
+                .enableOneTimeProducts()
+                .build()
 
-        billingClient = BillingClient.newBuilder(context)
-            .setListener(this)
-            .enablePendingPurchases(pendingParams)
-            .build()
+            billingClient = BillingClient.newBuilder(context)
+                .setListener(this)
+                .enablePendingPurchases(pendingParams)
+                .build()
 
-        startConnection()
+            startConnection()
+        } catch (_: Throwable) {
+            // Gracefully ignore billing initialization failures on sideloaded/unsupported devices
+        }
     }
 
     fun startConnection() {
-        billingClient?.startConnection(object : BillingClientStateListener {
-            override fun onBillingSetupFinished(billingResult: BillingResult) {
-                if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                    queryPurchases()
-                    queryProductDetails()
+        try {
+            billingClient?.startConnection(object : BillingClientStateListener {
+                override fun onBillingSetupFinished(billingResult: BillingResult) {
+                    try {
+                        if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                            queryPurchases()
+                            queryProductDetails()
+                        }
+                    } catch (_: Throwable) {}
                 }
-            }
 
-            override fun onBillingServiceDisconnected() {
-                // Connection lost, retry on next user action
-            }
-        })
+                override fun onBillingServiceDisconnected() {
+                    // Connection lost, retry on next user action
+                }
+            })
+        } catch (_: Throwable) {}
     }
 
     private fun queryProductDetails() {
-        val productList = listOf(
-            QueryProductDetailsParams.Product.newBuilder()
-                .setProductId(PRODUCT_ID_PRO)
-                .setProductType(BillingClient.ProductType.INAPP)
-                .build()
-        )
-
-        val params = QueryProductDetailsParams.newBuilder()
-            .setProductList(productList)
-            .build()
-
-        billingClient?.queryProductDetailsAsync(params) { billingResult, queryProductDetailsResult ->
-            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                val details = queryProductDetailsResult.firstOrNull()
-                _productDetails.value = details
-            }
-        }
-    }
-
-    fun queryPurchases() {
-        val params = QueryPurchasesParams.newBuilder()
-            .setProductType(BillingClient.ProductType.INAPP)
-            .build()
-
-        billingClient?.queryPurchasesAsync(params) { billingResult, purchases ->
-            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                val hasPurchased = purchases.any { purchase ->
-                    purchase.purchaseState == Purchase.PurchaseState.PURCHASED &&
-                            (purchase.products.contains(PRODUCT_ID_PRO) ||
-                             purchase.products.contains(PRODUCT_ID_PRO_LEGACY_199) ||
-                             purchase.products.contains(PRODUCT_ID_PRO_LEGACY_50))
-                }
-                if (hasPurchased) {
-                    setProUnlocked(true)
-                }
-            }
-        }
-    }
-
-    fun launchPurchaseFlow(activity: Activity) {
-        val details = _productDetails.value
-        if (details != null) {
-            val productDetailsParamsList = listOf(
-                BillingFlowParams.ProductDetailsParams.newBuilder()
-                    .setProductDetails(details)
+        try {
+            val productList = listOf(
+                QueryProductDetailsParams.Product.newBuilder()
+                    .setProductId(PRODUCT_ID_PRO)
+                    .setProductType(BillingClient.ProductType.INAPP)
                     .build()
             )
 
-            val flowParams = BillingFlowParams.newBuilder()
-                .setProductDetailsParamsList(productDetailsParamsList)
+            val params = QueryProductDetailsParams.newBuilder()
+                .setProductList(productList)
                 .build()
 
-            billingClient?.launchBillingFlow(activity, flowParams)
-        } else {
-            // If running in development without Play Store active, provide test simulation
+            billingClient?.queryProductDetailsAsync(params) { billingResult, queryProductDetailsResult ->
+                try {
+                    if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                        val details = queryProductDetailsResult.firstOrNull()
+                        _productDetails.value = details
+                    }
+                } catch (_: Throwable) {}
+            }
+        } catch (_: Throwable) {}
+    }
+
+    fun queryPurchases() {
+        try {
+            val params = QueryPurchasesParams.newBuilder()
+                .setProductType(BillingClient.ProductType.INAPP)
+                .build()
+
+            billingClient?.queryPurchasesAsync(params) { billingResult, purchases ->
+                try {
+                    if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                        val hasPurchased = purchases.any { purchase ->
+                            purchase.purchaseState == Purchase.PurchaseState.PURCHASED &&
+                                    (purchase.products.contains(PRODUCT_ID_PRO) ||
+                                     purchase.products.contains(PRODUCT_ID_PRO_LEGACY_199) ||
+                                     purchase.products.contains(PRODUCT_ID_PRO_LEGACY_50))
+                        }
+                        if (hasPurchased) {
+                            setProUnlocked(true)
+                        }
+                    }
+                } catch (_: Throwable) {}
+            }
+        } catch (_: Throwable) {}
+    }
+
+    fun launchPurchaseFlow(activity: Activity) {
+        try {
+            val details = _productDetails.value
+            if (details != null) {
+                val productDetailsParamsList = listOf(
+                    BillingFlowParams.ProductDetailsParams.newBuilder()
+                        .setProductDetails(details)
+                        .build()
+                )
+
+                val flowParams = BillingFlowParams.newBuilder()
+                    .setProductDetailsParamsList(productDetailsParamsList)
+                    .build()
+
+                billingClient?.launchBillingFlow(activity, flowParams)
+            } else {
+                // If running in development without Play Store active, provide test simulation
+                setProUnlocked(true)
+            }
+        } catch (_: Throwable) {
             setProUnlocked(true)
         }
     }

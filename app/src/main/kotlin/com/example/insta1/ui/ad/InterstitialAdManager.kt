@@ -21,31 +21,37 @@ class InterstitialAdManager(private val context: Context) {
     private var isLoading = false
 
     init {
-        AdMobConfig.initialize(context)
-        loadAd()
+        try {
+            AdMobConfig.initialize(context)
+            loadAd()
+        } catch (_: Throwable) {}
     }
 
     fun loadAd() {
-        if (interstitialAd != null || isLoading) return
-        isLoading = true
+        try {
+            if (interstitialAd != null || isLoading) return
+            isLoading = true
 
-        val adRequest = AdRequest.Builder().build()
-        InterstitialAd.load(
-            context,
-            TEST_INTERSTITIAL_AD_UNIT_ID,
-            adRequest,
-            object : InterstitialAdLoadCallback() {
-                override fun onAdLoaded(ad: InterstitialAd) {
-                    interstitialAd = ad
-                    isLoading = false
-                }
+            val adRequest = AdRequest.Builder().build()
+            InterstitialAd.load(
+                context,
+                TEST_INTERSTITIAL_AD_UNIT_ID,
+                adRequest,
+                object : InterstitialAdLoadCallback() {
+                    override fun onAdLoaded(ad: InterstitialAd) {
+                        interstitialAd = ad
+                        isLoading = false
+                    }
 
-                override fun onAdFailedToLoad(loadAdError: LoadAdError) {
-                    interstitialAd = null
-                    isLoading = false
+                    override fun onAdFailedToLoad(loadAdError: LoadAdError) {
+                        interstitialAd = null
+                        isLoading = false
+                    }
                 }
-            }
-        )
+            )
+        } catch (_: Throwable) {
+            isLoading = false
+        }
     }
 
     fun showAdIfAvailable(
@@ -53,31 +59,35 @@ class InterstitialAdManager(private val context: Context) {
         isPro: Boolean,
         onAdDismissed: () -> Unit = {}
     ) {
-        // Zero ads for PRO users
-        if (isPro) {
-            onAdDismissed()
-            return
-        }
-
-        val ad = interstitialAd
-        if (ad != null) {
-            ad.fullScreenContentCallback = object : FullScreenContentCallback() {
-                override fun onAdDismissedFullScreenContent() {
-                    interstitialAd = null
-                    loadAd() // Pre-load next ad for future splits
-                    onAdDismissed()
-                }
-
-                override fun onAdFailedToShowFullScreenContent(adError: AdError) {
-                    interstitialAd = null
-                    loadAd()
-                    onAdDismissed()
-                }
+        try {
+            // Zero ads for PRO users
+            if (isPro) {
+                onAdDismissed()
+                return
             }
-            ad.show(activity)
-        } else {
-            // If ad is not cached yet, do not block the user
-            loadAd()
+
+            val ad = interstitialAd
+            if (ad != null) {
+                ad.fullScreenContentCallback = object : FullScreenContentCallback() {
+                    override fun onAdDismissedFullScreenContent() {
+                        interstitialAd = null
+                        loadAd() // Pre-load next ad for future splits
+                        onAdDismissed()
+                    }
+
+                    override fun onAdFailedToShowFullScreenContent(adError: AdError) {
+                        interstitialAd = null
+                        loadAd()
+                        onAdDismissed()
+                    }
+                }
+                ad.show(activity)
+            } else {
+                // If ad is not cached yet, do not block the user
+                loadAd()
+                onAdDismissed()
+            }
+        } catch (_: Throwable) {
             onAdDismissed()
         }
     }

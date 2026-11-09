@@ -15,9 +15,14 @@ import com.example.insta1.ui.theme.Insta1Theme
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    AdMobConfig.initialize(this)
+    try {
+      AdMobConfig.initialize(this)
+    } catch (_: Throwable) {}
 
-    enableEdgeToEdge()
+    try {
+      enableEdgeToEdge()
+    } catch (_: Throwable) {}
+
     setContent {
       Insta1Theme {
         Surface(
