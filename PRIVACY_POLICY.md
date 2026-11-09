@@ -20,8 +20,8 @@
 
 ### 3. Third-Party Services
 The app uses the following certified third-party service providers:
-- **Google AdMob:** Free users are served banner ads provided by Google Mobile Ads SDK. Google AdMob may collect and process device identifiers (such as Android Advertising ID / GAID) and IP addresses in compliance with Google's Privacy Policy: [https://policies.google.com/privacy](https://policies.google.com/privacy).
-- **Google Play In-App Billing:** Used for processing the one-time $0.50 purchase to remove watermarks and ads. Google Play manages payment data securely; StoryCut does not collect, receive, or store credit card details or financial information.
+- **Google AdMob:** Free users are served banner and interstitial transition ads provided by Google Mobile Ads SDK. Google AdMob may collect and process device identifiers (such as Android Advertising ID / GAID) and IP addresses in compliance with Google's Privacy Policy: [https://policies.google.com/privacy](https://policies.google.com/privacy).
+- **Google Play In-App Billing:** Used for processing the one-time $2.99 Lifetime purchase to remove watermarks and all ads permanently. Google Play manages payment data securely; StoryCut does not collect, receive, or store credit card details or financial information.
 
 ---
 

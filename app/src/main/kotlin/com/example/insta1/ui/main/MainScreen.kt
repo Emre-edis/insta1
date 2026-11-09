@@ -72,6 +72,7 @@ import com.example.insta1.model.VideoSegment
 import com.example.insta1.service.BillingManager
 import com.example.insta1.service.VideoSplitter
 import com.example.insta1.ui.ad.AdBannerView
+import com.example.insta1.ui.ad.InterstitialAdManager
 import com.example.insta1.util.VideoUtils
 import kotlinx.coroutines.launch
 import kotlin.math.ceil
@@ -97,7 +98,9 @@ fun MainScreen() {
     val billingManager = remember { BillingManager(context, scope) }
     val isPro by billingManager.isProUnlocked.collectAsState()
     val productDetails by billingManager.productDetails.collectAsState()
-    val priceLabel = productDetails?.oneTimePurchaseOfferDetails?.formattedPrice ?: "$1.99"
+    val priceLabel = productDetails?.oneTimePurchaseOfferDetails?.formattedPrice ?: "$2.99"
+
+    val interstitialAdManager = remember { InterstitialAdManager(context) }
 
     var selectedVideo by remember { mutableStateOf<VideoInfo?>(null) }
     var segmentDurationMs by remember { mutableLongStateOf(60_000L) } // 60s default
@@ -195,6 +198,9 @@ fun MainScreen() {
                                     )
                                     completedSegments.addAll(results)
                                     isProcessing = false
+                                    if (results.isNotEmpty() && !isPro && activity != null) {
+                                        interstitialAdManager.showAdIfAvailable(activity, isPro = false)
+                                    }
                                 }
                             }
                         },
@@ -319,7 +325,7 @@ fun HeaderSection() {
 @Composable
 fun StoryCutProCard(
     isPro: Boolean,
-    priceLabel: String = "$1.99",
+    priceLabel: String = "$2.99",
     onUpgradeClick: () -> Unit,
     onRestoreClick: () -> Unit,
     onTestToggle: () -> Unit
@@ -352,35 +358,36 @@ fun StoryCutProCard(
                 ) {
                     Text(text = if (isPro) "👑" else "✨", fontSize = 20.sp)
                     Text(
-                        text = if (isPro) "StoryCut PRO Active" else "StoryCut PRO ($priceLabel)",
+                        text = if (isPro) "StoryCut Lifetime PRO Active" else "StoryCut Lifetime PRO",
                         color = if (isPro) InstaGreen else Color(0xFF38BDF8),
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp
                     )
                 }
 
-                if (isPro) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(InstaGreen.copy(alpha = 0.2f))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = "NO WATERMARK • NO ADS",
-                            color = InstaGreen,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(
+                            if (isPro) InstaGreen.copy(alpha = 0.2f)
+                            else Color(0xFF0070F3).copy(alpha = 0.25f)
                         )
-                    }
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = if (isPro) "NO WATERMARK • NO ADS" else "NO MONTHLY FEES",
+                        color = if (isPro) InstaGreen else Color(0xFF00E5FF),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
 
             Text(
                 text = if (isPro) {
-                    "Lifetime Access Active: Split videos cleanly with zero watermark, maximum remuxing speed, and no banner ads!"
+                    "Lifetime Access Active: Split videos cleanly with zero watermark, maximum remuxing speed, and no ads forever!"
                 } else {
-                    "Upgrade once for $priceLabel: Remove the 'StoryCut' watermark from videos, unlock ultra-fast lossless remuxing, and remove all ads."
+                    "No Monthly Fees! Pay Once ($priceLabel), Own Forever: Remove the 'StoryCut' watermark from videos, unlock ultra-fast lossless remuxing, and eliminate all ads."
                 },
                 color = Color.White.copy(alpha = 0.85f),
                 fontSize = 12.sp,
@@ -402,7 +409,7 @@ fun StoryCutProCard(
                         )
                     ) {
                         Text(
-                            text = "BUY PRO ($priceLabel)",
+                            text = "PAY ONCE ($priceLabel)",
                             color = Color.White,
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 13.sp
