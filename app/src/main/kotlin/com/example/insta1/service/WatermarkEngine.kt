@@ -2,9 +2,12 @@ package com.example.insta1.service
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.net.Uri
@@ -20,7 +23,7 @@ import androidx.media3.transformer.Effects
 import androidx.media3.transformer.ExportException
 import androidx.media3.transformer.ExportResult
 import androidx.media3.transformer.Transformer
-import com.google.common.collect.ImmutableList
+import com.example.insta1.R
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -29,44 +32,49 @@ import java.io.File
 @OptIn(UnstableApi::class)
 object WatermarkEngine {
 
-    fun createWatermarkBitmap(): Bitmap {
-        val width = 360
-        val height = 90
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    fun createWatermarkBitmap(context: Context): Bitmap {
+        val rawIcon = BitmapFactory.decodeResource(context.resources, R.drawable.app_logo)
+
+        val iconSize = 200
+        val textHeight = 44
+        val spacing = 8
+        val totalWidth = 220
+        val totalHeight = iconSize + spacing + textHeight
+
+        val bitmap = Bitmap.createBitmap(totalWidth, totalHeight, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
 
-        // Semi-transparent dark pill background
-        val bgPaint = Paint().apply {
-            color = Color.argb(175, 8, 12, 22)
-            isAntiAlias = true
-        }
-        val rect = RectF(0f, 0f, width.toFloat(), height.toFloat())
-        canvas.drawRoundRect(rect, 24f, 24f, bgPaint)
+        if (rawIcon != null) {
+            val scaledIcon = Bitmap.createScaledBitmap(rawIcon, iconSize, iconSize, true)
 
-        // Neon Cyan border
-        val borderPaint = Paint().apply {
-            color = Color.argb(200, 0, 229, 255)
-            style = Paint.Style.STROKE
-            strokeWidth = 3f
-            isAntiAlias = true
-        }
-        canvas.drawRoundRect(rect, 24f, 24f, borderPaint)
+            // Round the icon into a squircle with smooth transparent corners
+            val roundedIconBitmap = Bitmap.createBitmap(iconSize, iconSize, Bitmap.Config.ARGB_8888)
+            val iconCanvas = Canvas(roundedIconBitmap)
+            val clipPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+            val rect = RectF(0f, 0f, iconSize.toFloat(), iconSize.toFloat())
+            val cornerRadius = iconSize * 0.22f // ~44px rounded squircle
+            iconCanvas.drawRoundRect(rect, cornerRadius, cornerRadius, clipPaint)
+            clipPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+            iconCanvas.drawBitmap(scaledIcon, 0f, 0f, clipPaint)
 
-        // Electric cyan indicator dot
-        val dotPaint = Paint().apply {
-            color = Color.argb(255, 0, 229, 255)
-            isAntiAlias = true
+            // Draw rounded icon centered horizontally
+            val iconX = (totalWidth - iconSize) / 2f
+            canvas.drawBitmap(roundedIconBitmap, iconX, 0f, null)
         }
-        canvas.drawCircle(42f, height / 2f, 13f, dotPaint)
 
-        // White typography
-        val textPaint = Paint().apply {
+        // Draw "StoryCut" text directly underneath the icon
+        val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
             textSize = 34f
-            isAntiAlias = true
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            textAlign = Paint.Align.CENTER
+            // Subtle drop shadow for clarity on all video backgrounds
+            setShadowLayer(6f, 0f, 2f, Color.argb(200, 0, 0, 0))
         }
-        canvas.drawText("StoryCut", 75f, height / 2f + 12f, textPaint)
+
+        val textX = totalWidth / 2f
+        val textY = iconSize + spacing + 32f
+        canvas.drawText("StoryCut", textX, textY, textPaint)
 
         return bitmap
     }
@@ -76,6 +84,8 @@ object WatermarkEngine {
         sourceUri: Uri,
         startMs: Long,
         endMs: Long,
+        videoWidth: Int = 1080,
+        videoHeight: Int = 1920,
         outputFile: File
     ): Boolean = withContext(Dispatchers.Main) {
         if (outputFile.exists()) {
@@ -84,13 +94,24 @@ object WatermarkEngine {
 
         val deferred = CompletableDeferred<Boolean>()
 
-        val watermarkBitmap = createWatermarkBitmap()
+        val watermarkBitmap = createWatermarkBitmap(context)
 
-        // Position on bottom-left corner of video
+        val wmWidth = watermarkBitmap.width
+        val wmHeight = watermarkBitmap.height
+        val safeVidW = if (videoWidth > 0) videoWidth else 1080
+        val safeVidH = if (videoHeight > 0) videoHeight else 1920
+
+        // Scale relative to narrower video dimension so it is proportional on all aspect ratios
+        val targetWidthPx = minOf(safeVidW, safeVidH) * 0.20f
+        val scaleFactor = targetWidthPx / wmWidth.toFloat()
+        val scaleX = (wmWidth * scaleFactor / safeVidW.toFloat()) * 2.0f
+        val scaleY = (wmHeight * scaleFactor / safeVidH.toFloat()) * 2.0f
+
+        // Position on bottom-right corner of video
         val overlaySettings = OverlaySettings.Builder()
-            .setBackgroundFrameAnchor(-0.90f, -0.90f)
-            .setOverlayFrameAnchor(-1f, -1f)
-            .setScale(0.35f, 0.35f)
+            .setBackgroundFrameAnchor(0.88f, -0.80f)
+            .setOverlayFrameAnchor(1.0f, -1.0f)
+            .setScale(scaleX, scaleY)
             .build()
 
         val bitmapOverlay = BitmapOverlay.createStaticBitmapOverlay(watermarkBitmap, overlaySettings)

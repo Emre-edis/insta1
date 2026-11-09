@@ -27,14 +27,25 @@ object VideoSplitter {
     ): List<VideoSegment> = withContext(Dispatchers.IO) {
         val segments = mutableListOf<VideoSegment>()
 
-        // 1. Get total duration
+        // 1. Get total duration and dimensions
         var totalDurationUs: Long = 0L
+        var videoWidth = 1080
+        var videoHeight = 1920
         val retriever = MediaMetadataRetriever()
         try {
             retriever.setDataSource(context, sourceUri)
             val durStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
             val durationMs = durStr?.toLongOrNull() ?: 0L
             totalDurationUs = durationMs * 1000L
+
+            val wStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)
+            val hStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)
+            val rotStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)
+            val rotation = rotStr?.toIntOrNull() ?: 0
+            val rawW = wStr?.toIntOrNull() ?: 1080
+            val rawH = hStr?.toIntOrNull() ?: 1920
+            videoWidth = if (rotation == 90 || rotation == 270) rawH else rawW
+            videoHeight = if (rotation == 90 || rotation == 270) rawW else rawH
         } catch (e: Exception) {
             onProgress(SplitProgress(error = "Could not read video metadata: ${e.localizedMessage}"))
             return@withContext emptyList()
@@ -100,6 +111,8 @@ object VideoSplitter {
                             sourceUri = sourceUri,
                             startMs = startUs / 1000L,
                             endMs = endUs / 1000L,
+                            videoWidth = videoWidth,
+                            videoHeight = videoHeight,
                             outputFile = tempFile
                         )
                     } catch (_: Exception) {
