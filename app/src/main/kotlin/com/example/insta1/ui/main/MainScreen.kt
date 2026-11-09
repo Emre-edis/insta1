@@ -195,7 +195,7 @@ fun MainScreen() {
                                         strokeWidth = 2.dp
                                     )
                                     Text(
-                                        text = "VİDEO KESİLİYOR...",
+                                        text = "SPLITTING VIDEO...",
                                         color = Color.White,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 15.sp,
@@ -204,11 +204,11 @@ fun MainScreen() {
                                 }
                             } else {
                                 Text(
-                                    text = "1 DAKİKALIK PARÇALARA BÖL VE GALERİYE AT",
+                                    text = "CUT & SAVE",
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp,
-                                    letterSpacing = 0.5.sp
+                                    fontSize = 16.sp,
+                                    letterSpacing = 1.sp
                                 )
                             }
                         }
@@ -276,7 +276,7 @@ fun HeaderSection() {
                     letterSpacing = 1.sp
                 )
                 Text(
-                    text = "Otomatik 1 Dakikalık Video Bölücü & Galeri Aktarıcı",
+                    text = "Automatic 1-Minute Video Splitter & Gallery Exporter",
                     fontSize = 12.sp,
                     color = Color(0xFFA0A5B5)
                 )
@@ -316,13 +316,13 @@ fun VideoPickerCard(
                     Text(text = "🎬", fontSize = 28.sp)
                 }
                 Text(
-                    text = "Galeriden Video Seçin",
+                    text = "Select Video from Gallery",
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
                 Text(
-                    text = "Herhangi bir uzunluktaki videonuzu seçin; uygulama otomatik olarak 1 dakikalık sıralı parçalara bölecektir.",
+                    text = "Pick a video of any duration; the app will split it into sequential 1-minute clips automatically.",
                     fontSize = 12.sp,
                     color = Color.Gray,
                     textAlign = TextAlign.Center
@@ -368,14 +368,14 @@ fun VideoPickerCard(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Süre: ${VideoUtils.formatDuration(selectedVideo.durationMs)}  •  Boyut: ${VideoUtils.formatFileSize(selectedVideo.sizeBytes)}",
+                        text = "Duration: ${VideoUtils.formatDuration(selectedVideo.durationMs)}  •  Size: ${VideoUtils.formatFileSize(selectedVideo.sizeBytes)}",
                         color = Color(0xFFA0A5B5),
                         fontSize = 12.sp,
                         fontFamily = FontFamily.Monospace
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Farklı Video Seçmek İçin Dokunun ↻",
+                        text = "Tap to choose a different video ↻",
                         color = InstaOrange,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold
@@ -411,7 +411,7 @@ fun ConfigurationCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Bölüm Uzunluğu:",
+                    text = "Segment Length:",
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 14.sp
@@ -423,7 +423,7 @@ fun ConfigurationCard(
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = "Toplam $totalParts Parça Oluşacak",
+                        text = "$totalParts Segments Total",
                         color = Color(0xFFE0C3FC),
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp
@@ -436,9 +436,9 @@ fun ConfigurationCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 val durations = listOf(
-                    60_000L to "1 Dakika (Varsayılan)",
-                    30_000L to "30 Saniye",
-                    15_000L to "15 Saniye"
+                    60_000L to "1 Min (Default)",
+                    30_000L to "30 Seconds",
+                    15_000L to "15 Seconds"
                 )
 
                 durations.forEach { (ms, label) ->
@@ -511,7 +511,7 @@ fun ProgressCard(progress: SplitProgress) {
 
             if (progress.error != null) {
                 Text(
-                    text = "Hata: ${progress.error}",
+                    text = "Error: ${progress.error}",
                     color = Color.Red,
                     fontSize = 12.sp
                 )
@@ -538,13 +538,13 @@ fun SuccessHeader(totalParts: Int) {
             Text(text = "✅", fontSize = 22.sp)
             Column {
                 Text(
-                    text = "Tüm Parçalar Galeriye Kaydedildi!",
+                    text = "All Segments Saved to Gallery!",
                     color = InstaGreen,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp
                 )
                 Text(
-                    text = "$totalParts parça 'Movies/Insta1' albümüne sıralı olarak eklendi.",
+                    text = "$totalParts clips added sequentially to 'Movies/Insta1' album.",
                     color = Color.White.copy(alpha = 0.8f),
                     fontSize = 12.sp
                 )
@@ -593,7 +593,7 @@ fun SegmentItemCard(
 
                 Column {
                     Text(
-                        text = "Parça ${String.format("%02d", segment.partIndex)} / ${String.format("%02d", segment.totalParts)}",
+                        text = "Part ${String.format("%02d", segment.partIndex)} of ${String.format("%02d", segment.totalParts)}",
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp
@@ -613,7 +613,7 @@ fun SegmentItemCard(
                     shape = RoundedCornerShape(10.dp),
                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                 ) {
-                    Text(text = "Aç", fontSize = 11.sp, color = Color.White)
+                    Text(text = "Open", fontSize = 11.sp, color = Color.White)
                 }
 
                 Button(
@@ -622,7 +622,7 @@ fun SegmentItemCard(
                     colors = ButtonDefaults.buttonColors(containerColor = InstaPurple),
                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                 ) {
-                    Text(text = "Paylaş", fontSize = 11.sp, color = Color.White)
+                    Text(text = "Share", fontSize = 11.sp, color = Color.White)
                 }
             }
         }
@@ -646,6 +646,6 @@ fun shareVideo(context: Context, uri: Uri) {
             putExtra(Intent.EXTRA_STREAM, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        context.startActivity(Intent.createChooser(intent, "Videoyu Paylaş"))
+        context.startActivity(Intent.createChooser(intent, "Share Video"))
     } catch (_: Exception) {}
 }

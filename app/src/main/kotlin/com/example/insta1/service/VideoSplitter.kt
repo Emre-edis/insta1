@@ -35,27 +35,28 @@ object VideoSplitter {
             val durationMs = durStr?.toLongOrNull() ?: 0L
             totalDurationUs = durationMs * 1000L
         } catch (e: Exception) {
-            onProgress(SplitProgress(error = "Video bilgileri okunamadı: ${e.localizedMessage}"))
+            onProgress(SplitProgress(error = "Could not read video metadata: ${e.localizedMessage}"))
             return@withContext emptyList()
         } finally {
             try { retriever.release() } catch (_: Exception) {}
         }
 
         if (totalDurationUs <= 0L) {
-            onProgress(SplitProgress(error = "Geçersiz video süresi."))
+            onProgress(SplitProgress(error = "Invalid video duration."))
             return@withContext emptyList()
         }
 
         val segmentDurationUs = segmentDurationMs * 1000L
         val totalParts = maxOf(1, ceil(totalDurationUs.toDouble() / segmentDurationUs).toInt())
-        val cleanName = originalFileName.substringBeforeLast(".").ifBlank { "video" }
+        val rawName = originalFileName.substringBeforeLast(".").ifBlank { "video" }
+        val cleanName = rawName.replace(Regex("[^a-zA-Z0-9_-]"), "_").trim('_').ifBlank { "video" }
 
         onProgress(
             SplitProgress(
                 currentPart = 0,
                 totalParts = totalParts,
                 percentage = 0f,
-                statusText = "$totalParts parçaya bölme işlemi başlatılıyor..."
+                statusText = "Starting split into $totalParts parts..."
             )
         )
 
@@ -73,7 +74,7 @@ object VideoSplitter {
                     currentPart = partNumber,
                     totalParts = totalParts,
                     percentage = (partIndex.toFloat() / totalParts.toFloat()),
-                    statusText = "Parça $partNumber / $totalParts kesiliyor..."
+                    statusText = "Splitting part $partNumber of $totalParts..."
                 )
             )
 
@@ -84,7 +85,7 @@ object VideoSplitter {
             try {
                 // Open source video descriptor
                 val pfd = context.contentResolver.openFileDescriptor(sourceUri, "r")
-                    ?: throw IllegalStateException("Video dosyası açılamadı.")
+                    ?: throw IllegalStateException("Could not open video source file.")
                 extractor.setDataSource(pfd.fileDescriptor)
                 pfd.close()
 
@@ -111,7 +112,7 @@ object VideoSplitter {
                 }
 
                 if (trackIndexMap.isEmpty()) {
-                    throw IllegalStateException("Videoda geçerli ses veya video parçası bulunamadı.")
+                    throw IllegalStateException("No valid video or audio tracks found.")
                 }
 
                 muxer.start()
@@ -176,7 +177,7 @@ object VideoSplitter {
                         currentPart = partNumber,
                         totalParts = totalParts,
                         percentage = ((partIndex + 0.9f) / totalParts.toFloat()),
-                        statusText = "Parça $partNumber / $totalParts galeriye kaydediliyor..."
+                        statusText = "Saving part $partNumber of $totalParts to Gallery..."
                     )
                 )
 
@@ -209,7 +210,7 @@ object VideoSplitter {
                 currentPart = totalParts,
                 totalParts = totalParts,
                 percentage = 1.0f,
-                statusText = "Tamamlandı! Tüm videolar sırasıyla galeriye aktarıldı.",
+                statusText = "Completed! All videos saved sequentially to Gallery.",
                 isCompleted = true
             )
         )
