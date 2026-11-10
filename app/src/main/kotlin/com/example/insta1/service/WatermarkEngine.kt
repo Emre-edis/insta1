@@ -43,21 +43,20 @@ object WatermarkEngine {
         val canvas = Canvas(frameBitmap)
 
         if (emblemRaw != null && emblemRaw.width > 0) {
-            // Elegant subtle corner watermark:
-            // Sized to exactly 13% of the narrower video dimension (e.g. 140px on 1080p, 42px on 320p)
+            // Elegant, razor-sharp corner watermark:
+            // Proportional (~17% on 1080p), with minimum 100px so text and scissors NEVER lose resolution on any video
             val minDim = minOf(safeW, safeH)
-            val targetW = (minDim * 0.13f).toInt().coerceAtLeast(36)
+            val targetW = maxOf(100, (minDim * 0.17f).toInt())
             val aspect = emblemRaw.height.toFloat() / emblemRaw.width.toFloat()
             val targetH = (targetW.toFloat() * aspect).toInt()
 
-            // 3% margin from right and bottom edges
-            val marginX = (safeW * 0.03f).toInt().coerceAtLeast(10)
-            val marginY = (safeH * 0.03f).toInt().coerceAtLeast(10)
+            val marginX = maxOf(10, (safeW * 0.035f).toInt())
+            val marginY = maxOf(10, (safeH * 0.035f).toInt())
 
             val left = safeW - targetW - marginX
             val top = safeH - targetH - marginY
 
-            val paint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
+            val paint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG or Paint.DITHER_FLAG)
             val destRect = Rect(left, top, left + targetW, top + targetH)
             canvas.drawBitmap(emblemRaw, null, destRect, paint)
         }

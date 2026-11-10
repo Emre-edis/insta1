@@ -154,7 +154,7 @@ object VideoSplitter {
                                 currentPart = partNumber,
                                 totalParts = totalParts,
                                 percentage = (partIndex.toFloat() / totalParts.toFloat()),
-                                statusText = "Applying StoryCut watermark to part $partNumber of $totalParts..."
+                                statusText = "Cutting part $partNumber of $totalParts..."
                             )
                         )
                         watermarkApplied = WatermarkEngine.splitWithWatermark(
@@ -263,16 +263,15 @@ object VideoSplitter {
                 // Save to Gallery
                 val formattedPart = String.format("%02d", partNumber)
                 val formattedTotal = String.format("%02d", totalParts)
-                val prefix = if (isPro) "StoryCut" else "StoryCut_Watermarked"
+                val prefix = "StoryCut"
                 val displayName = "${prefix}_${cleanName}_part_${formattedPart}_of_${formattedTotal}.mp4"
 
-                val watermarkNote = if (!isPro) " [StoryCut Watermark]" else " [PRO No Watermark]"
                 onProgress(
                     SplitProgress(
                         currentPart = partNumber,
                         totalParts = totalParts,
                         percentage = ((partIndex + 0.9f) / totalParts.toFloat()),
-                        statusText = "Saving part $partNumber of $totalParts to Gallery$watermarkNote..."
+                        statusText = "Saving part $partNumber of $totalParts to Gallery..."
                     )
                 )
 
