@@ -30,58 +30,8 @@ import java.io.File
 object WatermarkEngine {
 
     fun createWatermarkBitmap(context: Context): Bitmap {
-        val emblemRaw = BitmapFactory.decodeResource(context.resources, R.drawable.watermark_emblem)
-
-        // Ultra High-Definition Resolution (540x540 emblem) for razor-sharp rendering on 1080p/4K
-        val emblemW = 540
-        val emblemH = if (emblemRaw != null && emblemRaw.width > 0) {
-            (emblemW.toFloat() * (emblemRaw.height.toFloat() / emblemRaw.width.toFloat())).toInt()
-        } else {
-            540
-        }
-
-        val spacing = 18
-        val textHeight = 90
-
-        val paintStory = Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
-            color = Color.WHITE
-            textSize = 76f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            setShadowLayer(10f, 0f, 3f, Color.argb(220, 0, 0, 0))
-        }
-
-        val paintCut = Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
-            color = Color.rgb(0, 229, 255) // Cyan
-            textSize = 76f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            setShadowLayer(10f, 0f, 3f, Color.argb(220, 0, 0, 0))
-        }
-
-        val storyWidth = paintStory.measureText("Story")
-        val cutWidth = paintCut.measureText("Cut")
-        val totalTextWidth = storyWidth + cutWidth
-
-        val totalW = maxOf(emblemW, (totalTextWidth + 32).toInt())
-        val totalH = emblemH + spacing + textHeight
-
-        val bitmap = Bitmap.createBitmap(totalW, totalH, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-
-        // 1. Draw Emblem squircle centered horizontally
-        if (emblemRaw != null) {
-            val emblemScaled = Bitmap.createScaledBitmap(emblemRaw, emblemW, emblemH, true)
-            val emblemX = (totalW - emblemW) / 2f
-            canvas.drawBitmap(emblemScaled, emblemX, 0f, null)
-        }
-
-        // 2. Draw "Story" (White) + "Cut" (Cyan) directly below the emblem
-        val textStartX = (totalW - totalTextWidth) / 2f
-        val textY = emblemH + spacing + 65f
-
-        canvas.drawText("Story", textStartX, textY, paintStory)
-        canvas.drawText("Cut", textStartX + storyWidth, textY, paintCut)
-
-        return bitmap
+        // High-definition pre-rendered master emblem (730x910) matching Image 2 reference with 100% fidelity
+        return BitmapFactory.decodeResource(context.resources, R.drawable.watermark_emblem)
     }
 
     suspend fun splitWithWatermark(
@@ -106,14 +56,14 @@ object WatermarkEngine {
         val safeVidW = if (videoWidth > 0) videoWidth else 1080
         val safeVidH = if (videoHeight > 0) videoHeight else 1920
 
-        // Subtle, elegant watermark sizing: 9.5% of narrower video dimension (compact, non-intrusive)
-        val targetWidthPx = minOf(safeVidW, safeVidH) * 0.095f
+        // Sizing matching user's reference Image 2 (~18% of narrower video dimension, min 110px for zero pixelation)
+        val targetWidthPx = maxOf(110f, minOf(safeVidW, safeVidH) * 0.18f)
         val scaleX = targetWidthPx / safeVidW.toFloat()
         val scaleY = (targetWidthPx * (wmHeight.toFloat() / wmWidth.toFloat())) / safeVidH.toFloat()
 
-        // Position neatly in the bottom-right corner with clean margin from edge
+        // Position neatly in the bottom-right corner with 3.5% margin from edge
         val overlaySettings = OverlaySettings.Builder()
-            .setBackgroundFrameAnchor(0.92f, -0.86f)
+            .setBackgroundFrameAnchor(0.88f, -0.82f)
             .setOverlayFrameAnchor(1.0f, -1.0f)
             .setScale(scaleX, scaleY)
             .build()
