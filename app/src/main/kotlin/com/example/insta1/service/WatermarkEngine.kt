@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Rect
 import android.graphics.Typeface
 import android.net.Uri
 import androidx.annotation.OptIn
@@ -29,9 +30,36 @@ import java.io.File
 @OptIn(UnstableApi::class)
 object WatermarkEngine {
 
-    fun createWatermarkBitmap(context: Context): Bitmap {
-        // High-definition pre-rendered master emblem (730x910) matching Image 2 reference with 100% fidelity
-        return BitmapFactory.decodeResource(context.resources, R.drawable.watermark_emblem)
+    fun createFullFrameWatermark(
+        context: Context,
+        frameWidth: Int,
+        frameHeight: Int
+    ): Bitmap {
+        val emblemRaw = BitmapFactory.decodeResource(context.resources, R.drawable.watermark_emblem)
+        val safeW = if (frameWidth > 0) frameWidth else 1080
+        val safeH = if (frameHeight > 0) frameHeight else 1920
+
+        val frameBitmap = Bitmap.createBitmap(safeW, safeH, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(frameBitmap)
+
+        if (emblemRaw != null && emblemRaw.width > 0) {
+            // Elegant corner watermark: occupies exactly 16% of narrower video dimension
+            val targetW = (minOf(safeW, safeH) * 0.16f).toInt()
+            val targetH = (targetW.toFloat() * (emblemRaw.height.toFloat() / emblemRaw.width.toFloat())).toInt()
+
+            // 3.5% padding from bottom and right edges
+            val marginX = (safeW * 0.035f).toInt()
+            val marginY = (safeH * 0.035f).toInt()
+
+            val left = safeW - targetW - marginX
+            val top = safeH - targetH - marginY
+
+            val paint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
+            val destRect = Rect(left, top, left + targetW, top + targetH)
+            canvas.drawBitmap(emblemRaw, null, destRect, paint)
+        }
+
+        return frameBitmap
     }
 
     suspend fun splitWithWatermark(
@@ -49,26 +77,9 @@ object WatermarkEngine {
 
         val deferred = CompletableDeferred<Boolean>()
 
-        val watermarkBitmap = createWatermarkBitmap(context)
-
-        val wmWidth = watermarkBitmap.width
-        val wmHeight = watermarkBitmap.height
-        val safeVidW = if (videoWidth > 0) videoWidth else 1080
-        val safeVidH = if (videoHeight > 0) videoHeight else 1920
-
-        // Sizing matching user's reference Image 2 (~18% of narrower video dimension, min 110px for zero pixelation)
-        val targetWidthPx = maxOf(110f, minOf(safeVidW, safeVidH) * 0.18f)
-        val scaleX = targetWidthPx / safeVidW.toFloat()
-        val scaleY = (targetWidthPx * (wmHeight.toFloat() / wmWidth.toFloat())) / safeVidH.toFloat()
-
-        // Position neatly in the bottom-right corner with 3.5% margin from edge
-        val overlaySettings = OverlaySettings.Builder()
-            .setBackgroundFrameAnchor(0.88f, -0.82f)
-            .setOverlayFrameAnchor(1.0f, -1.0f)
-            .setScale(scaleX, scaleY)
-            .build()
-
-        val bitmapOverlay = BitmapOverlay.createStaticBitmapOverlay(watermarkBitmap, overlaySettings)
+        // Pre-rendered full-frame canvas guarantees exact 1:1 pixel placement with ZERO scaling bugs
+        val frameBitmap = createFullFrameWatermark(context, videoWidth, videoHeight)
+        val bitmapOverlay = BitmapOverlay.createStaticBitmapOverlay(frameBitmap)
         val overlayEffect = OverlayEffect(listOf(bitmapOverlay))
 
         val clippingConfig = MediaItem.ClippingConfiguration.Builder()
