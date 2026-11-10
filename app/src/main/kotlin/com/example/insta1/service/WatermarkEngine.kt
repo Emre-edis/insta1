@@ -43,22 +43,45 @@ object WatermarkEngine {
         val canvas = Canvas(frameBitmap)
 
         if (emblemRaw != null && emblemRaw.width > 0) {
-            // Elegant, razor-sharp corner watermark:
-            // Proportional (~17% on 1080p), with minimum 100px so text and scissors NEVER lose resolution on any video
+            // Elegant, razor-sharp corner watermark (one notch smaller: ~12% of minDim, min 72px):
             val minDim = minOf(safeW, safeH)
-            val targetW = maxOf(100, (minDim * 0.17f).toInt())
+            val targetW = maxOf(72, (minDim * 0.12f).toInt())
             val aspect = emblemRaw.height.toFloat() / emblemRaw.width.toFloat()
-            val targetH = (targetW.toFloat() * aspect).toInt()
+            val targetH = maxOf(1, (targetW.toFloat() * aspect).toInt())
 
-            val marginX = maxOf(10, (safeW * 0.035f).toInt())
-            val marginY = maxOf(10, (safeH * 0.035f).toInt())
+            val marginX = maxOf(10, (safeW * 0.032f).toInt())
+            val marginY = maxOf(10, (safeH * 0.032f).toInt())
 
             val left = safeW - targetW - marginX
             val top = safeH - targetH - marginY
 
+            // Multi-step progressive downscaling preserves 100% crisp vector edges and text at smaller sizes
+            var scaledEmblem: Bitmap = emblemRaw
+            while (scaledEmblem.width / 2 >= targetW && scaledEmblem.height / 2 >= targetH) {
+                val next = Bitmap.createScaledBitmap(
+                    scaledEmblem,
+                    scaledEmblem.width / 2,
+                    scaledEmblem.height / 2,
+                    true
+                )
+                if (scaledEmblem !== emblemRaw) {
+                    scaledEmblem.recycle()
+                }
+                scaledEmblem = next
+            }
+            if (scaledEmblem.width != targetW || scaledEmblem.height != targetH) {
+                val finalScaled = Bitmap.createScaledBitmap(scaledEmblem, targetW, targetH, true)
+                if (scaledEmblem !== emblemRaw) {
+                    scaledEmblem.recycle()
+                }
+                scaledEmblem = finalScaled
+            }
+
             val paint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG or Paint.DITHER_FLAG)
-            val destRect = Rect(left, top, left + targetW, top + targetH)
-            canvas.drawBitmap(emblemRaw, null, destRect, paint)
+            canvas.drawBitmap(scaledEmblem, left.toFloat(), top.toFloat(), paint)
+            if (scaledEmblem !== emblemRaw) {
+                scaledEmblem.recycle()
+            }
         }
 
         return frameBitmap
