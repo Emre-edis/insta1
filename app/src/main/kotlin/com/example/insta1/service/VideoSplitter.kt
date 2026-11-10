@@ -29,11 +29,19 @@ object VideoSplitter {
 
         // 1. Get total duration and dimensions
         var totalDurationUs: Long = 0L
-        var videoWidth = 1080
-        var videoHeight = 1920
+        var videoWidth = 0
+        var videoHeight = 0
+        var videoRotation = 0
+
         val retriever = MediaMetadataRetriever()
         try {
-            retriever.setDataSource(context, sourceUri)
+            val pfd = context.contentResolver.openFileDescriptor(sourceUri, "r")
+            if (pfd != null) {
+                retriever.setDataSource(pfd.fileDescriptor)
+                pfd.close()
+            } else {
+                retriever.setDataSource(context, sourceUri)
+            }
             val durStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
             val durationMs = durStr?.toLongOrNull() ?: 0L
             totalDurationUs = durationMs * 1000L
@@ -41,17 +49,60 @@ object VideoSplitter {
             val wStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)
             val hStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)
             val rotStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)
-            val rotation = rotStr?.toIntOrNull() ?: 0
-            val rawW = wStr?.toIntOrNull() ?: 1080
-            val rawH = hStr?.toIntOrNull() ?: 1920
-            videoWidth = if (rotation == 90 || rotation == 270) rawH else rawW
-            videoHeight = if (rotation == 90 || rotation == 270) rawW else rawH
-        } catch (e: Exception) {
-            onProgress(SplitProgress(error = "Could not read video metadata: ${e.localizedMessage}"))
-            return@withContext emptyList()
+            videoRotation = rotStr?.toIntOrNull() ?: 0
+            val rw = wStr?.toIntOrNull() ?: 0
+            val rh = hStr?.toIntOrNull() ?: 0
+            if (rw > 0 && rh > 0) {
+                videoWidth = if (videoRotation == 90 || videoRotation == 270) rh else rw
+                videoHeight = if (videoRotation == 90 || videoRotation == 270) rw else rh
+            }
+        } catch (_: Exception) {
         } finally {
             try { retriever.release() } catch (_: Exception) {}
         }
+
+        // Secondary check with MediaExtractor if dimensions still unverified
+        if (videoWidth <= 0 || videoHeight <= 0) {
+            val extractor = MediaExtractor()
+            try {
+                val pfd = context.contentResolver.openFileDescriptor(sourceUri, "r")
+                if (pfd != null) {
+                    extractor.setDataSource(pfd.fileDescriptor)
+                    pfd.close()
+                } else {
+                    extractor.setDataSource(context, sourceUri, null)
+                }
+                for (i in 0 until extractor.trackCount) {
+                    val format = extractor.getTrackFormat(i)
+                    val mime = format.getString(MediaFormat.KEY_MIME) ?: ""
+                    if (mime.startsWith("video/")) {
+                        if (format.containsKey(MediaFormat.KEY_WIDTH) && format.containsKey(MediaFormat.KEY_HEIGHT)) {
+                            val ew = format.getInteger(MediaFormat.KEY_WIDTH)
+                            val eh = format.getInteger(MediaFormat.KEY_HEIGHT)
+                            val erot = if (format.containsKey(MediaFormat.KEY_ROTATION)) format.getInteger(MediaFormat.KEY_ROTATION) else videoRotation
+                            if (erot == 90 || erot == 270) {
+                                videoWidth = eh
+                                videoHeight = ew
+                            } else {
+                                videoWidth = ew
+                                videoHeight = eh
+                            }
+                        }
+                        if (totalDurationUs <= 0L && format.containsKey(MediaFormat.KEY_DURATION)) {
+                            totalDurationUs = format.getLong(MediaFormat.KEY_DURATION)
+                        }
+                        break
+                    }
+                }
+            } catch (_: Exception) {
+            } finally {
+                try { extractor.release() } catch (_: Exception) {}
+            }
+        }
+
+        // Safe final fallback: only if video is completely unreadable
+        if (videoWidth <= 0) videoWidth = 1080
+        if (videoHeight <= 0) videoHeight = 1920
 
         if (totalDurationUs <= 0L) {
             onProgress(SplitProgress(error = "Invalid video duration."))
