@@ -297,13 +297,11 @@ fun HeaderSection() {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // High-Definition Squircle App Icon (Crisp Single-Border Master Emblem)
+        // High-Definition Squircle App Icon (Intact Glowing Master Emblem)
         Image(
             painter = painterResource(id = com.example.insta1.R.drawable.app_logo),
             contentDescription = "StoryCut Logo",
-            modifier = Modifier
-                .size(52.dp)
-                .clip(RoundedCornerShape(14.dp)),
+            modifier = Modifier.size(54.dp),
             contentScale = ContentScale.Fit
         )
 
