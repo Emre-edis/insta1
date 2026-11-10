@@ -106,15 +106,14 @@ object WatermarkEngine {
         val safeVidW = if (videoWidth > 0) videoWidth else 1080
         val safeVidH = if (videoHeight > 0) videoHeight else 1920
 
-        // Scale relative to narrower video dimension so it is proportional on all aspect ratios
-        val targetWidthPx = minOf(safeVidW, safeVidH) * 0.17f
-        val scaleFactor = targetWidthPx / wmWidth.toFloat()
-        val scaleX = (wmWidth * scaleFactor / safeVidW.toFloat()) * 2.0f
-        val scaleY = (wmHeight * scaleFactor / safeVidH.toFloat()) * 2.0f
+        // Subtle, elegant watermark sizing: 9.5% of narrower video dimension (compact, non-intrusive)
+        val targetWidthPx = minOf(safeVidW, safeVidH) * 0.095f
+        val scaleX = targetWidthPx / safeVidW.toFloat()
+        val scaleY = (targetWidthPx * (wmHeight.toFloat() / wmWidth.toFloat())) / safeVidH.toFloat()
 
-        // Position on bottom-right corner of video
+        // Position neatly in the bottom-right corner with clean margin from edge
         val overlaySettings = OverlaySettings.Builder()
-            .setBackgroundFrameAnchor(0.88f, -0.80f)
+            .setBackgroundFrameAnchor(0.92f, -0.86f)
             .setOverlayFrameAnchor(1.0f, -1.0f)
             .setScale(scaleX, scaleY)
             .build()
