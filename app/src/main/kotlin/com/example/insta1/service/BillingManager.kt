@@ -3,11 +3,12 @@ package com.example.insta1.service
 import android.app.Activity
 import android.content.Context
 import android.content.SharedPreferences
+import android.provider.Settings
+import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.BillingResult
-import com.android.billingclient.api.ConsumeParams
 import com.android.billingclient.api.PendingPurchasesParams
 import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
@@ -15,11 +16,10 @@ import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
+import java.security.MessageDigest
 
 class BillingManager(
     private val context: Context,
@@ -32,12 +32,32 @@ class BillingManager(
         const val PRODUCT_ID_PRO_LEGACY_50 = "storycut_pro_50c"
         private const val PREFS_NAME = "storycut_secure_prefs"
         private const val KEY_IS_PRO = "is_storycut_pro_unlocked"
+        private const val KEY_PRO_SIG = "storycut_pro_sig"
     }
 
     private val prefs: SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    private val _isProUnlocked = MutableStateFlow(prefs.getBoolean(KEY_IS_PRO, false))
+    private fun computeSignature(isPro: Boolean): String {
+        return try {
+            val deviceId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID) ?: "storycut_id"
+            val raw = "storycut_pro_auth_${deviceId}_$isPro"
+            val digest = MessageDigest.getInstance("SHA-256").digest(raw.toByteArray(Charsets.UTF_8))
+            digest.joinToString("") { "%02x".format(it) }
+        } catch (_: Throwable) {
+            ""
+        }
+    }
+
+    private fun readVerifiedPro(): Boolean {
+        val storedPro = prefs.getBoolean(KEY_IS_PRO, false)
+        if (!storedPro) return false
+        val storedSig = prefs.getString(KEY_PRO_SIG, "") ?: ""
+        val expectedSig = computeSignature(true)
+        return storedSig.isNotEmpty() && storedSig == expectedSig
+    }
+
+    private val _isProUnlocked = MutableStateFlow(readVerifiedPro())
     val isProUnlocked: StateFlow<Boolean> = _isProUnlocked.asStateFlow()
 
     private val _productDetails = MutableStateFlow<ProductDetails?>(null)
@@ -62,7 +82,7 @@ class BillingManager(
 
             startConnection()
         } catch (_: Throwable) {
-            // Gracefully ignore billing initialization failures on sideloaded/unsupported devices
+            // Gracefully ignore billing initialization failures
         }
     }
 
@@ -79,13 +99,13 @@ class BillingManager(
                 }
 
                 override fun onBillingServiceDisconnected() {
-                    // Connection lost, retry on next user action
+                    // Reconnect will be triggered on user action
                 }
             })
         } catch (_: Throwable) {}
     }
 
-    private fun queryProductDetails() {
+    fun queryProductDetails() {
         try {
             val productList = listOf(
                 QueryProductDetailsParams.Product.newBuilder()
@@ -118,14 +138,17 @@ class BillingManager(
             billingClient?.queryPurchasesAsync(params) { billingResult, purchases ->
                 try {
                     if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                        val hasPurchased = purchases.any { purchase ->
+                        val validPurchases = purchases.filter { purchase ->
                             purchase.purchaseState == Purchase.PurchaseState.PURCHASED &&
                                     (purchase.products.contains(PRODUCT_ID_PRO) ||
                                      purchase.products.contains(PRODUCT_ID_PRO_LEGACY_199) ||
                                      purchase.products.contains(PRODUCT_ID_PRO_LEGACY_50))
                         }
-                        if (hasPurchased) {
-                            setProUnlocked(true)
+                        if (validPurchases.isNotEmpty()) {
+                            validPurchases.forEach { handlePurchase(it) }
+                        } else {
+                            // If purchase was refunded or revoked by Google Play, revoke PRO
+                            setProUnlocked(false)
                         }
                     }
                 } catch (_: Throwable) {}
@@ -149,31 +172,40 @@ class BillingManager(
 
                 billingClient?.launchBillingFlow(activity, flowParams)
             } else {
-                // If running in development without Play Store active, provide test simulation
-                setProUnlocked(true)
+                // If details are not ready yet, trigger reload
+                queryProductDetails()
             }
-        } catch (_: Throwable) {
-            setProUnlocked(true)
-        }
+        } catch (_: Throwable) {}
     }
 
     override fun onPurchasesUpdated(billingResult: BillingResult, purchases: List<Purchase>?) {
         if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
             for (purchase in purchases) {
-                if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
-                    setProUnlocked(true)
-                }
+                handlePurchase(purchase)
             }
         }
     }
 
-    fun setProUnlocked(unlocked: Boolean) {
-        prefs.edit().putBoolean(KEY_IS_PRO, unlocked).apply()
-        _isProUnlocked.value = unlocked
+    private fun handlePurchase(purchase: Purchase) {
+        try {
+            if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
+                setProUnlocked(true)
+                // Acknowledge purchase so Google Play doesn't auto-refund after 3 days
+                if (!purchase.isAcknowledged) {
+                    val ackParams = AcknowledgePurchaseParams.newBuilder()
+                        .setPurchaseToken(purchase.purchaseToken)
+                        .build()
+                    billingClient?.acknowledgePurchase(ackParams) { _ -> }
+                }
+            }
+        } catch (_: Throwable) {}
     }
 
-    fun toggleTestPro() {
-        val newState = !_isProUnlocked.value
-        setProUnlocked(newState)
+    private fun setProUnlocked(unlocked: Boolean) {
+        prefs.edit()
+            .putBoolean(KEY_IS_PRO, unlocked)
+            .putString(KEY_PRO_SIG, computeSignature(unlocked))
+            .apply()
+        _isProUnlocked.value = unlocked
     }
 }

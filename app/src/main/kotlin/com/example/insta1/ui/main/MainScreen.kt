@@ -151,9 +151,6 @@ fun MainScreen() {
                     },
                     onRestoreClick = {
                         billingManager.queryPurchases()
-                    },
-                    onTestToggle = {
-                        billingManager.toggleTestPro()
                     }
                 )
             }
@@ -329,8 +326,7 @@ fun StoryCutProCard(
     isPro: Boolean,
     priceLabel: String = "$2.99",
     onUpgradeClick: () -> Unit,
-    onRestoreClick: () -> Unit,
-    onTestToggle: () -> Unit
+    onRestoreClick: () -> Unit
 ) {
     // Ambient Neon Cyan Glow Container
     Box(
@@ -373,7 +369,6 @@ fun StoryCutProCard(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(
-                        modifier = Modifier.clickable { onTestToggle() },
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {

@@ -8,11 +8,20 @@ android {
   namespace = "com.example.insta1"
   compileSdk = 36
   defaultConfig {
-    applicationId = "com.thedude.insta1"
+    applicationId = "com.storycut.app"
     minSdk = 26
     targetSdk = 35
     versionCode = 1
     versionName = "1.0"
+  }
+
+  signingConfigs {
+    create("release") {
+      storeFile = file("storycut_release.jks")
+      storePassword = "StoryCutRelease2026!"
+      keyAlias = "storycut"
+      keyPassword = "StoryCutRelease2026!"
+    }
   }
 
   buildTypes {
@@ -20,7 +29,7 @@ android {
       isMinifyEnabled = false
       isShrinkResources = false
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-      signingConfig = signingConfigs.getByName("debug")
+      signingConfig = signingConfigs.getByName("release")
     }
   }
   compileOptions {
