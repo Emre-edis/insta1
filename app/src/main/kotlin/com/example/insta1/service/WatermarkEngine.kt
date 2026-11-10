@@ -32,35 +32,36 @@ object WatermarkEngine {
     fun createWatermarkBitmap(context: Context): Bitmap {
         val emblemRaw = BitmapFactory.decodeResource(context.resources, R.drawable.watermark_emblem)
 
-        val emblemW = 200
+        // Ultra High-Definition Resolution (540x540 emblem) for razor-sharp rendering on 1080p/4K
+        val emblemW = 540
         val emblemH = if (emblemRaw != null && emblemRaw.width > 0) {
             (emblemW.toFloat() * (emblemRaw.height.toFloat() / emblemRaw.width.toFloat())).toInt()
         } else {
-            175
+            540
         }
 
-        val spacing = 8
-        val textHeight = 40
+        val spacing = 18
+        val textHeight = 90
 
-        val paintStory = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        val paintStory = Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
             color = Color.WHITE
-            textSize = 34f
+            textSize = 76f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            setShadowLayer(6f, 0f, 2f, Color.argb(190, 0, 0, 0))
+            setShadowLayer(10f, 0f, 3f, Color.argb(220, 0, 0, 0))
         }
 
-        val paintCut = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        val paintCut = Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
             color = Color.rgb(0, 229, 255) // Cyan
-            textSize = 34f
+            textSize = 76f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            setShadowLayer(6f, 0f, 2f, Color.argb(190, 0, 0, 0))
+            setShadowLayer(10f, 0f, 3f, Color.argb(220, 0, 0, 0))
         }
 
         val storyWidth = paintStory.measureText("Story")
         val cutWidth = paintCut.measureText("Cut")
         val totalTextWidth = storyWidth + cutWidth
 
-        val totalW = maxOf(emblemW, (totalTextWidth + 16).toInt())
+        val totalW = maxOf(emblemW, (totalTextWidth + 32).toInt())
         val totalH = emblemH + spacing + textHeight
 
         val bitmap = Bitmap.createBitmap(totalW, totalH, Bitmap.Config.ARGB_8888)
@@ -75,7 +76,7 @@ object WatermarkEngine {
 
         // 2. Draw "Story" (White) + "Cut" (Cyan) directly below the emblem
         val textStartX = (totalW - totalTextWidth) / 2f
-        val textY = emblemH + spacing + 30f
+        val textY = emblemH + spacing + 65f
 
         canvas.drawText("Story", textStartX, textY, paintStory)
         canvas.drawText("Cut", textStartX + storyWidth, textY, paintCut)

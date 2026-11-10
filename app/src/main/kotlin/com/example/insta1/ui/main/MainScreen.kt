@@ -297,24 +297,15 @@ fun HeaderSection() {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // Squircle App Icon with Subtle Neon Cyan Border
-        Box(
+        // High-Definition Squircle App Icon (Crisp Single-Border Master Emblem)
+        Image(
+            painter = painterResource(id = com.example.insta1.R.drawable.app_logo),
+            contentDescription = "StoryCut Logo",
             modifier = Modifier
                 .size(52.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(AppCardBg)
-                .border(1.2.dp, NeonCyan.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                painter = painterResource(id = com.example.insta1.R.drawable.app_logo),
-                contentDescription = "StoryCut Logo",
-                modifier = Modifier
-                    .size(46.dp)
-                    .clip(RoundedCornerShape(12.dp)),
-                contentScale = ContentScale.Fit
-            )
-        }
+                .clip(RoundedCornerShape(14.dp)),
+            contentScale = ContentScale.Fit
+        )
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
